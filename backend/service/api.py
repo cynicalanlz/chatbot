@@ -1,19 +1,33 @@
+from __future__ import print_function
+import httplib2
+import os
+
+from apiclient import discovery
+from oauth2client import client
+from oauth2client import tools
+from oauth2client.file import Storage
+
 import json
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, render_template
 from werkzeug.exceptions import HTTPException
 
 from service.config import config
 
 
+
+import datetime
+
+
 api = Blueprint('api', __name__)
 
+v = '/v1/'
 
-@api.route('/v1/hello')
-def hello():
-    return jsonify("Hello World!")
+@api.route(v+'register')
+def register():
+    return render_template('register.html')
 
 
-@api.route('/v1/poke', methods=['POST'])
+@api.route(v+'poke', methods=['POST'])
 def poke():
     response = {
         'msg': 'Ouch!',
