@@ -17,11 +17,9 @@ from werkzeug.exceptions import HTTPException
 from service.config import config, google_config
 
 api = Blueprint('api', __name__)
-base = Blueprint('base', __name__)
+
 
 v = '/v1/'
-
-
 
 @api.route(v+'register')
 def register():
@@ -46,12 +44,10 @@ def register():
     credentials = store.get()
 
     if not credentials or credentials.invalid:
-        flow = OAuth2WebServerFlow(
-            **google_config, redirect_uri_path='/api/v1/register_cb')        
+        flow = OAuth2WebServerFlow(**google_config)        
         auth_uri = flow.step1_get_authorize_url()
 
-
-    return  redirect(auth_uri, code=302)
+    return redirect(auth_uri, code=302)
 
 
 @api.route(v+'register_cb')

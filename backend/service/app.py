@@ -1,8 +1,7 @@
 from flask import Flask
 
-from service.api import api, base
+from service.api import api
 
 
 app = Flask(__name__)
 app.register_blueprint(api, url_prefix='/api')
-app.register_blueprint(base, url_prefix='')
