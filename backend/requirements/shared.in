@@ -1,3 +1,6 @@
 apiai
 flask
 google-api-python-client
+flask_sqlalchemy
+shortuuid
+psycopg2

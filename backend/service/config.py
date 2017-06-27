@@ -5,7 +5,7 @@ config_dict = {
 	'GOOGLE_API_OAUTH_CLIENT_ID' : '843279895494-jmab67kl6pnhr26c52efvjetlkrofgvt.apps.googleusercontent.com',
 	'GOOGLE_API_OAUTH_CLIENT_SECRET' : 'ovkEmYGc1sD9-XhPSaMD0v9Y',
 	'GOOGLE_API_SCOPES' : 'https://www.googleapis.com/auth/calendar',
-	'GOOGLE_API_REDIRECT_URL' : 'http://ec2-34-212-103-70.us-west-2.compute.amazonaws.com/api/v1/register_cb',		
+	'GOOGLE_API_REDIRECT_URL' : 'http://ec2-34-212-103-70.us-west-2.compute.amazonaws.com/api/v1/register_cb',
 }
 
 config.update(config_dict)

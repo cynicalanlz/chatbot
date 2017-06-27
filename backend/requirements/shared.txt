@@ -6,6 +6,7 @@
 #
 apiai==1.2.3
 click==6.7                # via flask
+flask-sqlalchemy==2.2
 flask==0.12
 google-api-python-client==1.6.2
 httplib2==0.10.3          # via google-api-python-client, oauth2client
@@ -14,9 +15,12 @@ jinja2==2.9.6             # via flask
 markupsafe==1.0           # via jinja2
 numpy==1.13.0             # via apiai
 oauth2client==4.1.1       # via google-api-python-client
+psycopg2==2.7.1
 pyasn1-modules==0.0.9     # via oauth2client
 pyasn1==0.2.3             # via oauth2client, pyasn1-modules, rsa
 rsa==3.4.2                # via oauth2client
+shortuuid==0.5.0
 six==1.10.0               # via google-api-python-client, oauth2client
+sqlalchemy==1.1.11        # via flask-sqlalchemy
 uritemplate==3.0.0        # via google-api-python-client
 werkzeug==0.12.2          # via flask
