@@ -2,8 +2,15 @@
 
 import os
 import yajl as json
-
 from slackclient import SlackClient
+
+from user.models import User
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from utils.lib import get_or_create
+import shortuuid
+
 try:
     import apiai
 except ImportError:
@@ -14,12 +21,22 @@ except ImportError:
 
 config = os.environ
 
+# an Engine, which the Session will use for connection
+# resources
+pg_engine = create_engine(config['SQLALCHEMY_DATABASE_URI'])
+Session = sessionmaker(bind=pg_engine)
+
 def slack_messaging():
     sc = SlackClient(config['SLACK_LEGACY_TOKEN'])
 
     if not sc.rtm_connect():
-        print("Connection Failed, invalid token?")
+        print("App is using legacy token, which probably should be used from one pc only. Connection Failed, invalid token?")
         return
+    
+    ai = apiai.ApiAI(config['APIAI_CLIENT_ACCESS_TOKEN'])
+    users = {}
+    session = Session()
+
 
     while True:
         buf = sc.rtm_read()
@@ -29,14 +46,26 @@ def slack_messaging():
 
             msg = item.get('text', '')
             subtype = item.get('subtype', '')
-            if subtype == 'botmessage': continue
+            if subtype == 'bot_message' or not msg: continue
 
-            ai = apiai.ApiAI(config['APIAI_CLIENT_ACCESS_TOKEN'])
-            request = ai.text_request()
-            request.session_id = '1' #"<SESSION ID, UNIQUE FOR EACH USER>"
-            request.query = msg
-            response = json.loads(request.getresponse().read().decode('utf8'))
-            response_text = response.get('result', {}).get('fulfillment', {}).get('speech', '')
+            usr = item.get('user', 1)     
+            print(usr)       
+            u, created = get_or_create(session, User, {'id': shortuuid.ShortUUID().random(length=22)}, slid=usr)
+            print (u.id, u.slid)
+            auth = u.google_auth is not None     
+
+            print (not auth, not created, not created and not auth)
+
+            if auth:
+                request = ai.text_request()
+                request.session_id = usr
+                request.query = msg
+                response = json.loads(request.getresponse().read().decode('utf8'))
+                print (response)
+                response_text = response.get('result', {}).get('fulfillment', {}).get('speech', '')
+            else:
+                response_text = "Looks like you are not authorized. To authorize Google Calendar open this url in browser %s?slid=%s" % (config['GOOGLE_API_REDIRECT_URL'], usr)
+            
             if not response_text: continue
                 
             m = sc.api_call(

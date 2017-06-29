@@ -13,7 +13,6 @@ from oauth2client.client import OAuth2WebServerFlow, Credentials
 import httplib2
 import shortuuid
 
-
 from flask import Blueprint, jsonify, render_template,redirect, request, make_response
 from werkzeug.exceptions import HTTPException
 
@@ -80,7 +79,15 @@ def register_google():
 
     uid = request.cookies.get("id") or shortuuid.ShortUUID().random(length=22)
     code = request.args.get('code')
-    usr = get_or_create(db.session, User, id=uid)
+    slid = request.args.get('slid')
+
+    if not slid and not code:
+        return jsonify({
+            'msg' : 'Slid or code not set'
+            })
+
+
+    usr, created = get_or_create(db.session, User, { 'slid' : slid }, id=uid)
 
     if usr.google_auth:
         creds = Credentials.new_from_json(usr.google_auth)
