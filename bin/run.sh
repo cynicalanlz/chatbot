@@ -17,6 +17,8 @@ DOCKER_PS_ID=$(docker run -d --name $SERVICE_NAME \
     -v "$(pwd)/configs/local":/app/configs \
     -e "GUNICORN_RELOAD=True" \
     -e "PYTHONUNBUFFERED=1" \
+    -$(xargs printf '-e %s ' < config/tapdone3.txt | cut -b 2-) \
     -p 80:80 $DEFAULT_IMAGE_ID)
+
 
 docker logs --follow $DOCKER_PS_ID

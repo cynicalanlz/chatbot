@@ -51,8 +51,6 @@ def get_events(service):
             end = event['end'].get('dateTime', event['end'].get('date'))
             rsp.append((start, end, event['summary']))
 
-    print ("resp", rsp)
-
     return rsp
 
 def events_resp(creds, usr):
@@ -86,8 +84,9 @@ def register():
         usr = get_or_create(db.session, User, id=uid)
         if usr.google_auth:
             creds = Credentials.new_from_json(usr.google_auth)
-            resp = events_resp(creds, usr)
-            return resp
+            if creds and not creds.invalid:
+                resp = events_resp(creds, usr)
+                return resp
  
 
     flow = OAuth2WebServerFlow(**google_config)    
