@@ -4,3 +4,5 @@ google-api-python-client
 flask_sqlalchemy
 shortuuid
 psycopg2
+slackclient
+yajl

@@ -2,7 +2,7 @@ from __future__ import print_function
 import httplib2
 import os
 import datetime
-import json
+import yajl as json
 
 from apiclient import discovery
 from oauth2client import client
@@ -21,6 +21,7 @@ from service.config import config, google_config
 from service.user.models import User
 from service.shared.models import db
 from service.utils.lib import get_or_create
+
 
 api = Blueprint('api', __name__)
 
@@ -65,7 +66,7 @@ def events_resp(creds, usr):
 
 
 @api.route(v+'register_cb')
-def register():
+def register_google():
 
     """Gets valid user credentials from storage.
 
@@ -79,14 +80,13 @@ def register():
 
     uid = request.cookies.get("id") or shortuuid.ShortUUID().random(length=22)
     code = request.args.get('code')
+    usr = get_or_create(db.session, User, id=uid)
 
-    if uid:
-        usr = get_or_create(db.session, User, id=uid)
-        if usr.google_auth:
-            creds = Credentials.new_from_json(usr.google_auth)
-            if creds and not creds.invalid:
-                resp = events_resp(creds, usr)
-                return resp
+    if usr.google_auth:
+        creds = Credentials.new_from_json(usr.google_auth)
+        if creds and not creds.invalid:
+            resp = events_resp(creds, usr)
+            return resp
  
 
     flow = OAuth2WebServerFlow(**google_config)    
@@ -96,13 +96,13 @@ def register():
         return redirect(auth_uri, code=302)
 
     creds = flow.step2_exchange(code)
+    creds_json = creds.to_json()    
     usr.google_auth = creds.to_json()
     db.session.commit()
     resp = events_resp(creds, usr)
     resp.set_cookie('id', uid )
 
     return resp
-
 
 
 @api.route(v+'register_js')

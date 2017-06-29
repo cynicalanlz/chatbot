@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 
 from service.api import api
 from service.shared.models import db
+from service.config import config, google_config
 
 
 # def create_app_tables():
@@ -19,8 +20,8 @@ from service.shared.models import db
 
 app = Flask(__name__)
 
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://tapdone3_user:09234ssds2e0mx4rqw8oe2nxq9w8643@tapdone.cznk1sm7ddt1.us-west-2.rds.amazonaws.com:5432/tapdone3_db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = bool(config['SQLALCHEMY_TRACK_MODIFICATIONS'])
+app.config['SQLALCHEMY_DATABASE_URI'] = config['SQLALCHEMY_DATABASE_URI']
 
 app.register_blueprint(api, url_prefix='/api')
 

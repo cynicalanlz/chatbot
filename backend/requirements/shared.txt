@@ -5,11 +5,14 @@
 #    pip-compile --output-file backend/requirements/shared.txt backend/requirements/shared.in
 #
 apiai==1.2.3
+certifi==2017.4.17        # via requests
+chardet==3.0.4            # via requests
 click==6.7                # via flask
 flask-sqlalchemy==2.2
 flask==0.12
 google-api-python-client==1.6.2
 httplib2==0.10.3          # via google-api-python-client, oauth2client
+idna==2.5                 # via requests
 itsdangerous==0.24        # via flask
 jinja2==2.9.6             # via flask
 markupsafe==1.0           # via jinja2
@@ -18,9 +21,14 @@ oauth2client==4.1.1       # via google-api-python-client
 psycopg2==2.7.1
 pyasn1-modules==0.0.9     # via oauth2client
 pyasn1==0.2.3             # via oauth2client, pyasn1-modules, rsa
+requests==2.18.1          # via slackclient
 rsa==3.4.2                # via oauth2client
 shortuuid==0.5.0
-six==1.10.0               # via google-api-python-client, oauth2client
+six==1.10.0               # via google-api-python-client, oauth2client, slackclient, websocket-client
+slackclient==1.0.6
 sqlalchemy==1.1.11        # via flask-sqlalchemy
 uritemplate==3.0.0        # via google-api-python-client
+urllib3==1.21.1           # via requests
+websocket-client==0.44.0  # via slackclient
 werkzeug==0.12.2          # via flask
+yajl==0.3.5
