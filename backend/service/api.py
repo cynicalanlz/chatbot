@@ -28,7 +28,6 @@ api = Blueprint('api', __name__)
 v = '/v1/'
 
 def get_service(creds):
-    print (creds, dir(creds))
     http = httplib2.Http()
     http = creds.authorize(http)
     service = discovery.build('calendar', 'v3', http=http)
@@ -87,7 +86,13 @@ def register_google():
             })
 
 
-    usr, created = get_or_create(db.session, User, { 'slid' : slid }, id=uid)
+    usr, created = get_or_create(db.session, User, default_values={'slid' : slid }, id=uid)
+
+    if not created and usr.slid == None:
+        usr.slid = slid
+        db.session.commit()
+
+
 
     if usr.google_auth:
         creds = Credentials.new_from_json(usr.google_auth)
@@ -105,7 +110,7 @@ def register_google():
     creds = flow.step2_exchange(code)
     creds_json = creds.to_json()    
     usr.google_auth = creds.to_json()
-    db.session.commit()
+    db.session.commit()    
     resp = events_resp(creds, usr)
     resp.set_cookie('id', uid )
 

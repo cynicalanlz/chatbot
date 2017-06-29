@@ -48,13 +48,13 @@ def slack_messaging():
             subtype = item.get('subtype', '')
             if subtype == 'bot_message' or not msg: continue
 
-            usr = item.get('user', 1)     
-            print(usr)       
-            u, created = get_or_create(session, User, {'id': shortuuid.ShortUUID().random(length=22)}, slid=usr)
-            print (u.id, u.slid)
+            usr = item.get('user', 1)
+            u, created = get_or_create(session, User, default_values={'id': shortuuid.ShortUUID().random(length=22)}, slid=usr)
+
+            print (u, u.id, u.slid)
             auth = u.google_auth is not None     
 
-            print (not auth, not created, not created and not auth)
+            print (u.google_auth, not auth, not created, not created and not auth)
 
             if auth:
                 request = ai.text_request()
