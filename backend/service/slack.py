@@ -98,9 +98,9 @@ def slack_messaging():
             if not resp['txt']: continue
             if msg_type == 'Create task':
                 event_time = datetime.datetime.now(pytz.utc) + datetime.timedelta(minutes=15)
-                e_resp = create_event(session, User, slid, event_text, event_time)
-                resp['txt'] += " " + e_resp
-                
+                e, e_resp = create_event(session, User, slid, event_text, event_time)                
+                resp['txt'] += "Event link: {link} .".format(link=e['htmlLink']) + e_resp
+
             pm(**resp)
             
 if __name__=='__main__':

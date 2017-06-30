@@ -105,5 +105,5 @@ def create_event(sess, usr, slid, event_text, event_time):
     event = service.events().insert(calendarId=primary_calendar, body=event).execute()
  
 
-    return res
+    return event, res
     
