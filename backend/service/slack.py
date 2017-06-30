@@ -2,14 +2,17 @@
 
 import os
 import yajl as json
+import datetime
+import shortuuid
 from slackclient import SlackClient
-
-from user.models import User
-
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
 from utils.lib import get_or_create
-import shortuuid
+from utils.calendar import create_event
+from user.models import User
+
+
 
 try:
     import apiai
@@ -38,13 +41,14 @@ def slack_messaging():
     sc = SlackClient(config['SLACK_LEGACY_TOKEN'])
 
     if not sc.rtm_connect():
-        print("App is using legacy token, which probably should be used from one pc only. Connection Failed, invalid token?")
+        print("""\
+        App is using legacy token, which probably should be used from one pc only. Connection Failed, invalid token\
+        """)
         return
     
     ai = apiai.ApiAI(config['APIAI_CLIENT_ACCESS_TOKEN'])
     users = {}
     session = Session()
-
 
     while True:
         buf = sc.rtm_read()
@@ -56,13 +60,16 @@ def slack_messaging():
             subtype = item.get('subtype', '')
             if subtype == 'bot_message' or not msg: continue
 
-            usr = item.get('user', 1)
-            u, created = get_or_create(session, User, default_values={'id': shortuuid.ShortUUID().random(length=22)}, slid=usr)
+            slid = item.get('user', 1)
+            u, created = get_or_create(
+                session, 
+                User, 
+                default_values={'id': shortuuid.ShortUUID().random(length=22)}, 
+                slid=slid
+            )
 
             auth = u.google_auth is not None
-
-            response_text = ''
-            msg_conf =  {
+            resp =  {
                 'sc' : sc, 
                 'ch' : item['channel'],
                 'txt' : '', 
@@ -70,24 +77,31 @@ def slack_messaging():
             } 
 
             if not auth:
-                msg_conf['txt'] = """\
+                resp['txt'] = """\
                 Looks like you are not authorized. To authorize Google Calendar open this url in browser %s?slid=%s\
-                """ % (config['GOOGLE_API_REDIRECT_URL'], usr)
-                pm(**msg_conf)
-            
+                """ % (config['GOOGLE_API_REDIRECT_URL'], slid)
+                pm(**resp)
+                continue
+        
             request = ai.text_request()
-            request.session_id = usr
+            request.session_id = slid
             request.query = msg
-            response = json.loads(request.getresponse().read().decode('utf8'))
-            print ('Response', response.text('result'), response.get('result', {}).get('intentName',''))
-            msg_conf['txt'] = response.get('result', {}).get('fulfillment', {}).get('speech', '')
-                
+            airesponse = json.loads(request.getresponse().read().decode('utf8'))
+
+            res = airesponse.get('result',{})
+            msg_type = res.get('metadata', {}).get('intentName','')
+            event_text = res.get('parameters', {}).get('any', "Test task text")
+            resp['txt'] = res.get('fulfillment', {}).get('speech', '')
+
+            print ('event text', event_text)
             
-            if not msg_conf['txt']: continue
+            if not resp['txt']: continue
+            if msg_type == 'Create task':
+                event_time = datetime.datetime.now() + datetime.timedelta(minutes=15)
+                e = create_event(session, User, slid, event_text, event_time)
+                print(e)
 
-            pm(**msg_conf)
+            pm(**resp)
             
-
-
 if __name__=='__main__':
 	slack_messaging()

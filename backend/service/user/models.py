@@ -7,4 +7,4 @@ class User(Base):
     __tablename__ = 'users'
     id = Column(String(22), primary_key=True)
     slid = Column(String(22))
-    google_auth = Column(String(1024))
+    google_auth = Column(String(2048))

@@ -20,37 +20,12 @@ from service.config import config, google_config
 from service.user.models import User
 from service.shared.models import db
 from service.utils.lib import get_or_create
-
+from service.utils.calendar import get_service, get_events, create_event
 
 api = Blueprint('api', __name__)
 
 
 v = '/v1/'
-
-def get_service(creds):
-    http = httplib2.Http()
-    http = creds.authorize(http)
-    service = discovery.build('calendar', 'v3', http=http)
-    return service
-
-def get_events(service):
-    now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
-    eventsResult = service.events().list(
-        calendarId='primary', timeMin=now, maxResults=10, singleEvents=True,
-        orderBy='startTime').execute()
-    events = eventsResult.get('items', [])
-
-    if not events:
-        rsp = 'No upcoming events found.'        
-    else:
-        rsp = []
-
-        for event in events:
-            start = event['start'].get('dateTime', event['start'].get('date'))
-            end = event['end'].get('dateTime', event['end'].get('date'))
-            rsp.append((start, end, event['summary']))
-
-    return rsp
 
 def events_resp(creds, usr):
     service = get_service(creds)
@@ -75,7 +50,6 @@ def register_google():
         Credentials, the obtained credential.
     """
         
-
     uid = request.cookies.get("id") or shortuuid.ShortUUID().random(length=22)
     code = request.args.get('code')
     slid = request.args.get('slid')
@@ -92,15 +66,12 @@ def register_google():
         usr.slid = slid
         db.session.commit()
 
-
-
     if usr.google_auth:
-        creds = Credentials.new_from_json(usr.google_auth)
+        creds = Credentials.new_from_json(json.loads(usr.google_auth))
         if creds and not creds.invalid:
             resp = events_resp(creds, usr)
             return resp
  
-
     flow = OAuth2WebServerFlow(**google_config)    
 
     if not code:            
@@ -108,9 +79,9 @@ def register_google():
         return redirect(auth_uri, code=302)
 
     creds = flow.step2_exchange(code)
-    creds_json = creds.to_json()    
-    usr.google_auth = creds.to_json()
-    db.session.commit()    
+    creds_json = creds.to_json()  
+    usr.google_auth = json.dumps(creds.to_json())
+    db.session.commit()
     resp = events_resp(creds, usr)
     resp.set_cookie('id', uid )
 

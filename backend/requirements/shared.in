@@ -6,3 +6,4 @@ shortuuid
 psycopg2
 slackclient
 yajl
+alembic
