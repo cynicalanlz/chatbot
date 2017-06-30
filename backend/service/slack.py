@@ -26,6 +26,14 @@ config = os.environ
 pg_engine = create_engine(config['SQLALCHEMY_DATABASE_URI'])
 Session = sessionmaker(bind=pg_engine)
 
+def pm(sc, ch, txt, thread):
+    return sc.api_call(
+      "chat.postMessage",
+      channel=ch,
+      text=txt,
+      thread_ts=thread
+    )
+
 def slack_messaging():
     sc = SlackClient(config['SLACK_LEGACY_TOKEN'])
 
@@ -51,29 +59,34 @@ def slack_messaging():
             usr = item.get('user', 1)
             u, created = get_or_create(session, User, default_values={'id': shortuuid.ShortUUID().random(length=22)}, slid=usr)
 
-            print (u, u.id, u.slid)
-            auth = u.google_auth is not None     
+            auth = u.google_auth is not None
 
-            print (u.google_auth, not auth, not created, not created and not auth)
+            response_text = ''
+            msg_conf =  {
+                'sc' : sc, 
+                'ch' : item['channel'],
+                'txt' : '', 
+                'thread': item['ts']
+            } 
 
-            if auth:
-                request = ai.text_request()
-                request.session_id = usr
-                request.query = msg
-                response = json.loads(request.getresponse().read().decode('utf8'))
-                print (response)
-                response_text = response.get('result', {}).get('fulfillment', {}).get('speech', '')
-            else:
-                response_text = "Looks like you are not authorized. To authorize Google Calendar open this url in browser %s?slid=%s" % (config['GOOGLE_API_REDIRECT_URL'], usr)
+            if not auth:
+                msg_conf['txt'] = """\
+                Looks like you are not authorized. To authorize Google Calendar open this url in browser %s?slid=%s\
+                """ % (config['GOOGLE_API_REDIRECT_URL'], usr)
+                pm(**msg_conf)
             
-            if not response_text: continue
+            request = ai.text_request()
+            request.session_id = usr
+            request.query = msg
+            response = json.loads(request.getresponse().read().decode('utf8'))
+            print ('Response', response.text('result'), response.get('result', {}).get('intentName',''))
+            msg_conf['txt'] = response.get('result', {}).get('fulfillment', {}).get('speech', '')
                 
-            m = sc.api_call(
-              "chat.postMessage",
-              channel=item['channel'],
-              text=response_text,
-              thread_ts=item['ts']
-            )
+            
+            if not msg_conf['txt']: continue
+
+            pm(**msg_conf)
+            
 
 
 if __name__=='__main__':
