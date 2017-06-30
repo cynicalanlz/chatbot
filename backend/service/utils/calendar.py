@@ -9,6 +9,8 @@ from oauth2client import tools
 from oauth2client.file import Storage
 from oauth2client.client import OAuth2WebServerFlow, Credentials
 
+from dateutil.parser import *
+
 def get_service(creds):
     http = httplib2.Http()
     http = creds.authorize(http)
@@ -50,6 +52,11 @@ def get_primary_calendar(service):
 
     return primary_id
 
+def has_overlap(A_start, A_end, B_start, B_end):
+    latest_start = max(A_start, B_start)
+    earliest_end = min(A_end, B_end)
+    return latest_start <= earliest_end
+
 def create_event(sess, usr, slid, event_text, event_time):
     usr = sess.query(usr).filter_by(slid=slid).first()
     creds = Credentials.new_from_json(json.loads(usr.google_auth))
@@ -61,31 +68,42 @@ def create_event(sess, usr, slid, event_text, event_time):
     service = get_service(creds)
     events = get_events(service)
     
+    new_start = event_time
+    new_end = event_time + datetime.timedelta(minutes=30)
 
-    for e in events:        
-        print (e)
+    overlap_texts = []
 
-    primary_calendar = get_primary_calendar(service)
+    for start, end, summary in events:
+        event_start = parse(start)
+        event_end = parse(end)
+
+        if has_overlap(event_start, event_end, new_start, new_end):
+            overlap_texts.append('%s, which is between %s - %s' % (summary, event_start, event_end))
+
+    if len(overlap_texts) > 0:
+        res =  'Overlaps with: %s.' % (','.join(overlap_texts))
+    else:
+        res = ''
 
     
-    end_date = event_time + datetime.timedelta(minutes=30)
-
-      
+    primary_calendar = get_primary_calendar(service)    
+    
     event = {
       'summary': event_text,
       # 'location': '800 Howard St., San Francisco, CA 94103',
       # 'description': 'A chance to hear more about Google\'s developer products.',
       'start': {
-        'dateTime':  event_time.isoformat('T'),
+        'dateTime':  new_start.isoformat('T'),
         'timeZone': 'America/Los_Angeles',
       },
       'end': {
-        'dateTime': end_date.isoformat('T'),
+        'dateTime': new_end.isoformat('T'),
         'timeZone': 'America/Los_Angeles',
       }
     }
 
     event = service.events().insert(calendarId=primary_calendar, body=event).execute()
+ 
 
-    return event
+    return res
     

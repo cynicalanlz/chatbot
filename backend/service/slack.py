@@ -8,11 +8,12 @@ from slackclient import SlackClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from utils.lib import get_or_create
 from utils.calendar import create_event
 from user.models import User
+from utils.lib import get_or_create
 
-
+from dateutil.parser import *
+import pytz
 
 try:
     import apiai
@@ -36,6 +37,7 @@ def pm(sc, ch, txt, thread):
       text=txt,
       thread_ts=thread
     )
+
 
 def slack_messaging():
     sc = SlackClient(config['SLACK_LEGACY_TOKEN'])
@@ -92,15 +94,13 @@ def slack_messaging():
             msg_type = res.get('metadata', {}).get('intentName','')
             event_text = res.get('parameters', {}).get('any', "Test task text")
             resp['txt'] = res.get('fulfillment', {}).get('speech', '')
-
-            print ('event text', event_text)
             
             if not resp['txt']: continue
             if msg_type == 'Create task':
-                event_time = datetime.datetime.now() + datetime.timedelta(minutes=15)
-                e = create_event(session, User, slid, event_text, event_time)
-                print(e)
-
+                event_time = datetime.datetime.now(pytz.utc) + datetime.timedelta(minutes=15)
+                e_resp = create_event(session, User, slid, event_text, event_time)
+                resp['txt'] += " " + e_resp
+                
             pm(**resp)
             
 if __name__=='__main__':

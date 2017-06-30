@@ -25,6 +25,7 @@ pyasn1-modules==0.0.9     # via oauth2client
 pyasn1==0.2.3             # via oauth2client, pyasn1-modules, rsa
 python-dateutil==2.6.0    # via alembic
 python-editor==1.0.3      # via alembic
+pytz==2017.2
 requests==2.18.1          # via slackclient
 rsa==3.4.2                # via oauth2client
 shortuuid==0.5.0

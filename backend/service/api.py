@@ -28,6 +28,9 @@ api = Blueprint('api', __name__)
 v = '/v1/'
 
 def events_resp(creds, usr):
+    """
+    Lists authorized user events
+    """
     service = get_service(creds)
     events = get_events(service)
     return make_response(
