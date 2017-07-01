@@ -110,10 +110,11 @@ http://ec2-34-212-103-70.us-west-2.compute.amazonaws.com
 https://us-west-2.console.aws.amazon.com/ecs/home?region=us-west-2#/repositories/tapdone3#images;tagStatus=ALL
 
 ## Compile dependancies
-
+```
 pip-compile backend/requirements/shared.in --output-file backend/requirements/shared.txt 
+```
 
-## Sample deployt script build instructions
+## Sample deploy script build instructions
 
 1) Retrieve the docker login command that you can use to authenticate your Docker client to your registry:
 ```aws ecr get-login --region us-west-2```
