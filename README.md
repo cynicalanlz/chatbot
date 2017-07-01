@@ -70,7 +70,9 @@ sudo docker stop $(sudo docker ps -aq)
 
 ## Login to single docker machine
 
+```
 sudo docker exec -i -t $(sudo docker ps -q) /bin/bash
+```
 
 ## Start 
 
@@ -78,6 +80,7 @@ sudo docker exec -i -t $(sudo docker ps -q) /bin/bash
 sudo /etc/init.d/nginx stop && sudo ./bin/build.sh && sudo docker rm -f /tapdone && sudo ./bin/run.sh
 ```
 
+```
 docker-machine start
 `docker-machine env`
 docker images
