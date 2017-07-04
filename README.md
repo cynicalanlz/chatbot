@@ -1,6 +1,7 @@
 ## DB reset
 
 ```
+sudo docker stop $(sudo docker ps -aq)
 psql \
    --host=tapdone.cznk1sm7ddt1.us-west-2.rds.amazonaws.com \
    --port=5432 \
@@ -10,6 +11,7 @@ psql \
 ```
 
 ```
+DROP TABLE users;
 DROP SCHEMA public CASCADE;
 CREATE SCHEMA public;
 ```
