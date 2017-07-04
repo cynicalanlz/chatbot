@@ -36,19 +36,6 @@ session_factory.close_all() # <- don't forget to close
 Base.metadata.create_all(engine)
 ```
 
-## DB init op2
-
-```
-from service.app import app, db
-from service.user.models import User
-db.init_app(app)
-
-with app.app_context():    
-    db.create_all()
-
-```
-
-
 ## DB reset user info
 
 ```
