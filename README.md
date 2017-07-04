@@ -79,6 +79,12 @@ sudo docker exec -i -t $(sudo docker ps -q) /bin/bash
 ```
 sudo /etc/init.d/nginx stop && sudo ./bin/build.sh && sudo docker rm -f /tapdone && sudo ./bin/run.sh
 ```
+## Deploy
+
+```
+sudo ./bin/build.sh && sudo docker tag opagrp/tapdone:latest 424467247636.dkr.ecr.us-west-2.amazonaws.com/tapdone4:latest &&  sudo docker push 424467247636.dkr.ecr.us-west-2.amazonaws.com/tapdone4:latest
+```
+
 
 ```
 docker-machine start
