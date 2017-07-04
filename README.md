@@ -82,7 +82,12 @@ sudo /etc/init.d/nginx stop && sudo ./bin/build.sh && sudo docker rm -f /tapdone
 ## Deploy
 
 ```
+ 
+aws ecr get-login
+‘’remove -e none from command and execute’’
 sudo ./bin/build.sh && sudo docker tag opagrp/tapdone:latest 424467247636.dkr.ecr.us-west-2.amazonaws.com/tapdone4:latest &&  sudo docker push 424467247636.dkr.ecr.us-west-2.amazonaws.com/tapdone4:latest
+Перезапустить таск на кластере https://us-west-2.console.aws.amazon.com/ecs/home?region=us-west-2#/clusters/cluster1/tasks
+
 ```
 
 
