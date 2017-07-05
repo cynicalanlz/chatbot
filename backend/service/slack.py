@@ -7,10 +7,13 @@ import shortuuid
 from slackclient import SlackClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+import asyncio
 
 from utils.calendar import create_event
-from user.models import User
+from user.models import User, SlackTeam
 from utils.lib import get_or_create
+from concurrent.futures import ProcessPoolExecutor
+
 
 from dateutil.parser import *
 import pytz
@@ -35,12 +38,14 @@ def pm(sc, ch, txt, thread):
       "chat.postMessage",
       channel=ch,
       text=txt,
-      thread_ts=thread
+      thread_ts=thread,
+      as_user=False,
+      username="tapdone bot"
     )
 
+def slack_messaging(token):
 
-def slack_messaging():
-    sc = SlackClient(config['SLACK_LEGACY_TOKEN'])
+    sc = SlackClient(token)    
 
     if not sc.rtm_connect():
         print("""\
@@ -48,6 +53,7 @@ def slack_messaging():
         """)
         return
     
+
     ai = apiai.ApiAI(config['APIAI_CLIENT_ACCESS_TOKEN'])
     users = {}
     session = Session()
@@ -60,7 +66,8 @@ def slack_messaging():
 
             msg = item.get('text', '')
             subtype = item.get('subtype', '')
-            if subtype == 'bot_message' or not msg: continue
+            team = item.get('team', '') or item.get('source_team', '')
+            if subtype == 'bot_message' or not team: continue
 
             slid = item.get('user', 1)
             u, created = get_or_create(
@@ -80,8 +87,8 @@ def slack_messaging():
 
             if not auth:
                 resp['txt'] = """\
-                Looks like you are not authorized. To authorize Google Calendar open this url in browser %s?slid=%s\
-                """ % (config['GOOGLE_API_REDIRECT_URL'], slid)
+                Looks like you are not authorized. To authorize Google Calendar open this url in browser %s?slid=%s&tid=%s\
+                """ % (config['GOOGLE_API_REDIRECT_URL'], slid, team)
                 pm(**resp)
                 continue
         
@@ -97,11 +104,31 @@ def slack_messaging():
             
             if not resp['txt']: continue
             if msg_type == 'Create task':
+                # tid = u.team_id
+                # if team:
+                #     team = session.query(SlackTeam).filter_by(**{'team_id': tid }).first()
+                    
+                #     print (bsc)
+                #     resp['sc'] = bsc
+
+                    
+                
                 event_time = datetime.datetime.now(pytz.utc) + datetime.timedelta(minutes=15)
-                e, e_resp = create_event(session, User, slid, event_text, event_time)                
+                e, e_resp = create_event(session, User, slid, event_text, event_time)                    
                 resp['txt'] += "Event link: {link} .".format(link=e['htmlLink']) + e_resp
 
             pm(**resp)
-            
-if __name__=='__main__':
-	slack_messaging()
+
+
+if __name__ == "__main__":
+    session = Session()
+    tokens = [x[0] for x in session.query(SlackTeam.bot_user_id).distinct()]
+
+    loop = asyncio.get_event_loop()
+
+    executor = ProcessPoolExecutor(len(tokens))
+
+    for token in tokens:
+        q = asyncio.ensure_future(loop.run_in_executor(executor, slack_messaging, token))
+
+    loop.run_forever()

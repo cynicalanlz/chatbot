@@ -9,3 +9,6 @@ yajl
 alembic
 pytz
 retry
+#
+flask-script
+graphene-sqlalchemy>=1.0

@@ -17,10 +17,13 @@ from flask import Blueprint, jsonify, render_template,redirect, request, make_re
 from werkzeug.exceptions import HTTPException
 
 from service.config import config, google_config
-from service.user.models import User
+from service.user.models import User, SlackTeam
 from service.shared.models import db
 from service.utils.lib import get_or_create
 from service.utils.calendar import get_service, get_events, create_event
+
+from slackclient import SlackClient
+
 
 api = Blueprint('api', __name__)
 
@@ -40,6 +43,43 @@ def events_resp(creds, usr):
             events=events,
         ))
 
+@api.route(v+"register_slack", methods=["GET", "POST"])
+def post_install():
+    # Retrieve the auth code from the request params
+    auth_code = request.args['code']
+
+    # An empty string is a valid token for this request
+    sc = SlackClient("")
+
+    # Request the auth tokens from Slack
+    auth_response = sc.api_call(
+        "oauth.access",
+        client_id=config['SLACK_CLIENT_ID'],
+        client_secret=config['SLACK_CLIENT_SECRET'],
+        code=auth_code
+    )
+
+    tid = shortuuid.ShortUUID().random(length=22)
+
+    team, created = get_or_create(
+        db.session, 
+        SlackTeam,
+        default_values={'id' : tid },
+        id=tid
+        )    
+
+
+    team.team_name = auth_response['team_name']
+    team.team_id = auth_response['team_id']
+    team.access_token = auth_response['access_token']
+    team.bot_token = auth_response['bot']['bot_user_id']
+    team.bot_user_id = auth_response['bot']['bot_access_token']
+
+    db.session.commit()
+ 
+  
+    return jsonify({'msg' : 'ok'})
+
 
 @api.route(v+'register_cb')
 def register_google():
@@ -48,13 +88,12 @@ def register_google():
 
     If nothing has been stored, or if the stored credentials are invalid,
     the OAuth2 flow is completed to obtain the new credentials.
-
-    Returns:
-        Credentials, the obtained credential.
+    returns page @@TODO: remove page and or redirect to slack.
     """
         
-    uid = request.cookies.get("id") or shortuuid.ShortUUID().random(length=22)
+    uid = request.cookies.get("id") or str(shortuuid.ShortUUID().random(length=22))    
     code = request.args.get('code')
+    tid = request.args.get('tid')
     slid = request.args.get('slid')
 
     if not slid and not code:
@@ -63,11 +102,7 @@ def register_google():
             })
 
 
-    usr, created = get_or_create(db.session, User, default_values={'slid' : slid }, id=uid)
-
-    if not created and usr.slid == None:
-        usr.slid = slid
-        db.session.commit()
+    usr, created = get_or_create(db.session, User, default_values={'slid' : slid, 'team_id' : tid }, id=uid) # user created and slack id is set
 
     if usr.google_auth:
         creds = Credentials.new_from_json(json.loads(usr.google_auth))
@@ -82,13 +117,32 @@ def register_google():
         return redirect(auth_uri, code=302)
 
     creds = flow.step2_exchange(code)
-    creds_json = creds.to_json()  
-    usr.google_auth = json.dumps(creds.to_json())
+    creds_json = creds.to_json()   
+
+    usr, created = get_or_create(db.session, User, default_values={'slid' : slid }, id=uid)        
+    usr.google_auth = json.dumps(creds.to_json())    
     db.session.commit()
     resp = events_resp(creds, usr)
-    resp.set_cookie('id', uid )
+
+    if not 'id' in request.cookies:
+        resp.set_cookie('id', uid )
 
     return resp
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 @api.route(v+'register_js')

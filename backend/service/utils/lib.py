@@ -6,7 +6,9 @@ def get_or_create(session, model, default_values=False, **kwargs):
     if instance:
         return instance, False
     else:
-        instance = model(**kwargs, **default_values)
+        params = default_values
+        params.update({**kwargs})
+        instance = model(**params)
         session.add(instance)
         session.commit()
         return instance, True
