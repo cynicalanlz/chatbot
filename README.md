@@ -2,6 +2,7 @@
 
 
 ```
+sudo docker stop $(sudo docker ps -aq)
 psql \
    --host=tapdone.cznk1sm7ddt1.us-west-2.rds.amazonaws.com \
    --port=5432 \
@@ -11,6 +12,7 @@ psql \
 ```
 
 ```
+DROP TABLE users;
 DROP SCHEMA public CASCADE;
 CREATE SCHEMA public;
 ```
@@ -34,19 +36,6 @@ session_factory = sessionmaker(engine)
 session_factory.close_all() # <- don't forget to close
 Base.metadata.create_all(engine)
 ```
-
-## DB init op2
-
-```
-from service.app import app, db
-from service.user.models import User
-db.init_app(app)
-
-with app.app_context():    
-    db.create_all()
-
-```
-
 
 ## DB reset user info
 
@@ -80,6 +69,17 @@ sudo docker exec -i -t $(sudo docker ps -q) /bin/bash
 ```
 sudo /etc/init.d/nginx stop && sudo ./bin/build.sh && sudo docker rm -f /tapdone && sudo ./bin/run.sh
 ```
+## Deploy
+
+```
+ 
+aws ecr get-login
+‘’remove -e none from command and execute’’
+sudo ./bin/build.sh && sudo docker tag opagrp/tapdone:latest 424467247636.dkr.ecr.us-west-2.amazonaws.com/tapdone4:latest &&  sudo docker push 424467247636.dkr.ecr.us-west-2.amazonaws.com/tapdone4:latest
+Перезапустить таск на кластере https://us-west-2.console.aws.amazon.com/ecs/home?region=us-west-2#/clusters/cluster1/tasks
+
+```
+
 
 ```
 docker-machine start
