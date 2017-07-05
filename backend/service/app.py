@@ -14,16 +14,3 @@ app.config['SQLALCHEMY_DATABASE_URI'] = config['SQLALCHEMY_DATABASE_URI']
 
 app.register_blueprint(api, url_prefix='/api')
 db.init_app(app)
-
-
-# def create_app_tables():
-#     app = flask.Flask("app")
-#     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite://'
-#     app.register_blueprint(api)
-#     db.init_app(app)
-#     with app.app_context():
-#         # Extensions like Flask-SQLAlchemy now know what the "current" app
-#         # is while within this block. Therefore, you can now run........
-#         db.create_all()
-
-#     return app

@@ -12,7 +12,7 @@ import asyncio
 from utils.calendar import create_event
 from user.models import User, SlackTeam
 from utils.lib import get_or_create
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 
 
 from dateutil.parser import *
@@ -103,16 +103,7 @@ def slack_messaging(token):
             resp['txt'] = res.get('fulfillment', {}).get('speech', '')
             
             if not resp['txt']: continue
-            if msg_type == 'Create task':
-                # tid = u.team_id
-                # if team:
-                #     team = session.query(SlackTeam).filter_by(**{'team_id': tid }).first()
-                    
-                #     print (bsc)
-                #     resp['sc'] = bsc
-
-                    
-                
+            if msg_type == 'Create task':                
                 event_time = datetime.datetime.now(pytz.utc) + datetime.timedelta(minutes=15)
                 e, e_resp = create_event(session, User, slid, event_text, event_time)                    
                 resp['txt'] += "Event link: {link} .".format(link=e['htmlLink']) + e_resp
@@ -126,7 +117,7 @@ if __name__ == "__main__":
 
     loop = asyncio.get_event_loop()
 
-    executor = ProcessPoolExecutor(len(tokens))
+    executor = ThreadPoolExecutor(len(tokens))
 
     for token in tokens:
         q = asyncio.ensure_future(loop.run_in_executor(executor, slack_messaging, token))

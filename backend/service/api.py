@@ -75,8 +75,7 @@ def post_install():
     team.bot_token = auth_response['bot']['bot_user_id']
     team.bot_user_id = auth_response['bot']['bot_access_token']
 
-    db.session.commit()
- 
+    db.session.commit()     
   
     return jsonify({'msg' : 'ok'})
 
