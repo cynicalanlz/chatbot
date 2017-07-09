@@ -114,12 +114,14 @@ def slack_messaging(token):
 if __name__ == "__main__":
     session = Session()
     tokens = [x[0] for x in session.query(SlackTeam.bot_user_id).distinct()]
+    if len(tokens) > 0:
 
-    loop = asyncio.get_event_loop()
+        loop = asyncio.get_event_loop()
 
-    executor = ThreadPoolExecutor(len(tokens))
+        executor = ThreadPoolExecutor(len(tokens))
 
-    for token in tokens:
-        q = asyncio.ensure_future(loop.run_in_executor(executor, slack_messaging, token))
 
-    loop.run_forever()
+        for token in tokens:
+            q = asyncio.ensure_future(loop.run_in_executor(executor, slack_messaging, token))
+
+        loop.run_forever()

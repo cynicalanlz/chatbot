@@ -43,6 +43,11 @@ def events_resp(creds, usr):
             events=events,
         ))
 
+
+@api.route(v+'register_slack_team')
+def register_slack():
+    return render_template('register_slack.html')
+
 @api.route(v+"register_slack", methods=["GET", "POST"])
 def post_install():
     # Retrieve the auth code from the request params
@@ -128,43 +133,6 @@ def register_google():
 
     return resp
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-@api.route(v+'register_js')
-def register_js():
-    return render_template('register.html')
-
-
-@api.route(v+'poke', methods=['POST'])
-def poke():
-    response = {
-        'msg': 'Ouch!',
-        'status': 'SUCCESS'
-        }
-
-    return jsonify(response)
-
-
-@api.route('/version')
-def version():
-    with open('version.json') as fp:
-        version = json.load(fp)
-
-    return jsonify(version)
 
 
 @api.route('/health')
