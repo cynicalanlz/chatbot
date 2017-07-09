@@ -57,7 +57,8 @@ def has_overlap(A_start, A_end, B_start, B_end):
     earliest_end = min(A_end, B_end)
     return latest_start <= earliest_end
 
-def create_event(sess, usr, slid, event_text, event_time):
+def create_event(sess, usr, slid, event_text, event_start_new, event_end_new):
+
     usr = sess.query(usr).filter_by(slid=slid).first()
     creds = Credentials.new_from_json(json.loads(usr.google_auth))
 
@@ -68,8 +69,6 @@ def create_event(sess, usr, slid, event_text, event_time):
     service = get_service(creds)
     events = get_events(service)
     
-    new_start = event_time
-    new_end = event_time + datetime.timedelta(minutes=30)
 
     overlap_texts = []
 
@@ -77,7 +76,7 @@ def create_event(sess, usr, slid, event_text, event_time):
         event_start = parse(start)
         event_end = parse(end)
 
-        if has_overlap(event_start, event_end, new_start, new_end):
+        if has_overlap(event_start, event_end, event_start_new, event_end_new):
             overlap_texts.append('%s, which is between %s - %s' % (summary, event_start, event_end))
 
     if len(overlap_texts) > 0:
@@ -93,11 +92,11 @@ def create_event(sess, usr, slid, event_text, event_time):
       # 'location': '800 Howard St., San Francisco, CA 94103',
       # 'description': 'A chance to hear more about Google\'s developer products.',
       'start': {
-        'dateTime':  new_start.isoformat('T'),
+        'dateTime':  event_start_new.isoformat('T'),
         'timeZone': 'America/Los_Angeles',
       },
       'end': {
-        'dateTime': new_end.isoformat('T'),
+        'dateTime': event_end_new.isoformat('T'),
         'timeZone': 'America/Los_Angeles',
       }
     }

@@ -154,9 +154,6 @@ def get_tokens():
     
     return jsonify(response), 200
 
-
-
-
 @api.route('/health')
 def health():
     response = {

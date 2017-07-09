@@ -93,13 +93,39 @@ def slack_messaging(token):
 
             res = airesponse.get('result',{})
             msg_type = res.get('metadata', {}).get('intentName','')
-            event_text = res.get('parameters', {}).get('any', "Test task text")
+            params = res.get('parameters', {})
+            event_text = params.get('any', "Test task text")
+            event_time = params.get('time', [])
+            event_date = params.get('date', '')
+            
+            if len(event_time) == 2:            
+                event_start_time = event_time[0]
+                event_end_time = event_time[1]
+
             resp['txt'] = res.get('fulfillment', {}).get('speech', '')
             
             if not resp['txt']: continue
-            if msg_type == 'Create task':                
-                event_time = datetime.datetime.now(pytz.utc) + datetime.timedelta(minutes=15)
-                e, e_resp = create_event(session, User, slid, event_text, event_time)                    
+            if msg_type == 'Create task':
+
+                if event_date and event_time and event_end_time:
+                    event_start_time = "%sT%s" % (event_date, event_start_time)
+                    event_end_time = "%sT%s" % (event_date, event_end_time)
+                    print(event_start_time, event_end_time)
+                    event_start_time = parse(event_start_time).replace(tzinfo=pytz.UTC)
+                    event_end_time = parse(event_end_time).replace(tzinfo=pytz.UTC)
+
+                else:
+                    event_start_time = datetime.datetime.now(pytz.utc) + datetime.timedelta(minutes=15)
+                    event_end_time = event_start_time + datetime.timedelta(minutes=30)
+
+                print('finished with timezones')
+                try:
+                    e, e_resp = create_event(
+                        session, User, slid, event_text, 
+                        event_start_time, event_end_time) 
+                    print (e, e_resp)                   
+                except:
+                    print ("Unexpected error:", sys.exc_info()[0])
                 resp['txt'] += "Event link: {link} .".format(link=e['htmlLink']) + e_resp
 
             pm(**resp)
@@ -121,7 +147,6 @@ async def handle(request):
 def main():
     tokens = get_tokens()
         
-
     if len(tokens)  > 0 :
         loop = asyncio.get_event_loop()
         executor = ThreadPoolExecutor(len(tokens))
