@@ -39,14 +39,17 @@ def events_resp(creds, usr):
     return make_response(
         render_template(
             'registered.html',
-            name=usr.id,
-            events=events,
         ))
 
 
 @api.route(v+'register_slack_team')
-def register_slack():
+def register_slack_team():
     return render_template('register_slack.html')
+
+def slack_team_process(token):
+    h = httplib2.Http(".cache")
+    (resp_headers, content) = h.request("http://127.0.0.1/slack_team_process?token=%s" % token, "GET")
+    return resp_headers
 
 @api.route(v+"register_slack", methods=["GET", "POST"])
 def post_install():
@@ -77,10 +80,15 @@ def post_install():
     team.team_name = auth_response['team_name']
     team.team_id = auth_response['team_id']
     team.access_token = auth_response['access_token']
-    team.bot_token = auth_response['bot']['bot_user_id']
-    team.bot_user_id = auth_response['bot']['bot_access_token']
+    team.bot_token = auth_response['bot']['bot_access_token']
+    team.bot_user_id = auth_response['bot']['bot_user_id']
 
-    db.session.commit()     
+    db.session.commit()
+
+
+    print(team.bot_token)
+    slack_team_process(team.bot_token)
+
   
     return jsonify({'msg' : 'ok'})
 
@@ -132,6 +140,20 @@ def register_google():
         resp.set_cookie('id', uid )
 
     return resp
+
+@api.route(v+'get_tokens')
+def get_tokens():
+
+    # if request.remote_addr != '':
+    #     return jsonify({})
+
+    tokens = [x[0] for x in db.session.query(SlackTeam.bot_token).distinct()]
+    response = {
+        'tokens' : tokens
+    }
+    
+    return jsonify(response), 200
+
 
 
 

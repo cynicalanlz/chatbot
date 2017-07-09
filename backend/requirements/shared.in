@@ -10,5 +10,6 @@ alembic
 pytz
 retry
 #
-flask-script
-graphene-sqlalchemy>=1.0
+#flask-script
+#graphene-sqlalchemy>=1.0
+aiohttp

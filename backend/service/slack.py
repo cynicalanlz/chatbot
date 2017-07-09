@@ -4,19 +4,21 @@ import os
 import yajl as json
 import datetime
 import shortuuid
-from slackclient import SlackClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 import asyncio
-
 from utils.calendar import create_event
-from user.models import User, SlackTeam
-from utils.lib import get_or_create
 from concurrent.futures import ThreadPoolExecutor
-
-
 from dateutil.parser import *
 import pytz
+import httplib2
+
+from slackclient import SlackClient
+import threading
+from aiohttp import web
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from user.models import User, SlackTeam
+from utils.lib import get_or_create
 
 try:
     import apiai
@@ -52,7 +54,6 @@ def slack_messaging(token):
         App is using legacy token, which probably should be used from one pc only. Connection Failed, invalid token\
         """)
         return
-    
 
     ai = apiai.ApiAI(config['APIAI_CLIENT_ACCESS_TOKEN'])
     users = {}
@@ -70,14 +71,7 @@ def slack_messaging(token):
             if subtype == 'bot_message' or not team: continue
 
             slid = item.get('user', 1)
-            u, created = get_or_create(
-                session, 
-                User, 
-                default_values={'id': shortuuid.ShortUUID().random(length=22)}, 
-                slid=slid
-            )
-
-            auth = u.google_auth is not None
+            auth = session.query(User.google_auth).filter_by(slid=slid).first()
             resp =  {
                 'sc' : sc, 
                 'ch' : item['channel'],
@@ -110,18 +104,36 @@ def slack_messaging(token):
 
             pm(**resp)
 
+def get_tokens():
+    h = httplib2.Http(".cache")
+    (resp_headers, content) = h.request("http://127.0.0.1/api/v1/get_tokens", "GET")
+    tokens = [ x for x in  json.loads(content)['tokens'] if x is not None]
+    return set(tokens)
 
-if __name__ == "__main__":
-    session = Session()
-    tokens = [x[0] for x in session.query(SlackTeam.bot_user_id).distinct()]
-    if len(tokens) > 0:
 
+async def handle(request):
+    token = request.query.get('token', "") 
+    t = threading.Thread(target=slack_messaging, args=(token,))
+    t.daemon = True
+    t.start()
+    return web.Response(text='ok')
+
+def main():
+    tokens = get_tokens()
+        
+
+    if len(tokens)  > 0 :
         loop = asyncio.get_event_loop()
-
         executor = ThreadPoolExecutor(len(tokens))
-
-
         for token in tokens:
             q = asyncio.ensure_future(loop.run_in_executor(executor, slack_messaging, token))
 
-        loop.run_forever()
+    app = web.Application()
+    app.router.add_get('/slack_team_process', handle)
+    web.run_app(app, host='127.0.0.1', port=8080)
+
+    loop.run_forever()
+
+if __name__ == "__main__":
+    main()
+
