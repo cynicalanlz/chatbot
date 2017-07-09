@@ -61,8 +61,7 @@ def create_event(sess, usr, slid, event_text, event_start_new, event_end_new):
 
     usr = sess.query(usr).filter_by(slid=slid).first()
     creds = Credentials.new_from_json(json.loads(usr.google_auth))
-
-    print (creds, creds.invalid)
+        
     if not creds or creds.invalid:
         return "Can't find your slid. Are you registered?"
 

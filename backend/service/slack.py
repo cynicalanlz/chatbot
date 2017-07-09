@@ -110,22 +110,17 @@ def slack_messaging(token):
                 if event_date and event_time and event_end_time:
                     event_start_time = "%sT%s" % (event_date, event_start_time)
                     event_end_time = "%sT%s" % (event_date, event_end_time)
-                    print(event_start_time, event_end_time)
-                    event_start_time = parse(event_start_time).replace(tzinfo=pytz.UTC)
-                    event_end_time = parse(event_end_time).replace(tzinfo=pytz.UTC)
+                    event_start_time = parse(event_start_time).replace(tzinfo=pytz.timezone('America/Los_Angeles'))
+                    event_end_time = parse(event_end_time).replace(tzinfo=pytz.timezone('America/Los_Angeles'))
 
                 else:
-                    event_start_time = datetime.datetime.now(pytz.utc) + datetime.timedelta(minutes=15)
+                    event_start_time = datetime.datetime.now(pytz.timezone('America/Los_Angeles')) + datetime.timedelta(minutes=15)
                     event_end_time = event_start_time + datetime.timedelta(minutes=30)
 
-                print('finished with timezones')
-                try:
-                    e, e_resp = create_event(
-                        session, User, slid, event_text, 
-                        event_start_time, event_end_time) 
-                    print (e, e_resp)                   
-                except:
-                    print ("Unexpected error:", sys.exc_info()[0])
+                e, e_resp = create_event(
+                    session, User, slid, event_text, 
+                    event_start_time, event_end_time) 
+                
                 resp['txt'] += "Event link: {link} .".format(link=e['htmlLink']) + e_resp
 
             pm(**resp)
