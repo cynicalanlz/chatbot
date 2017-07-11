@@ -114,7 +114,6 @@ def get_user_google_auth(slid):
     h = httplib2.Http(".cache")
     format_string = config['FLASK_PROTOCOL']+"://"+config['FLASK_HOST']+"/api/v1/get_user_google_auth?slid=%s"
     url = format_string % slid 
-    print (url)
     (resp_headers, content) = h.request(url, "GET")
     jsn = json.loads(content)
     return jsn['google_auth']

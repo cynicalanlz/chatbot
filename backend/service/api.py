@@ -49,7 +49,9 @@ def register_slack_team():
 
 def slack_team_process(token):
     h = httplib2.Http(".cache")
-    (resp_headers, content) = h.request("http://127.0.0.1/slack_team_process?token=%s" % token, "GET")
+    format_string = config['SLACK_PROTOCOL']+"://"+config['SLACK_HOST']+"/api/v1/slack_team_process?token=%s"
+    url = format_string % token
+    (resp_headers, content) = h.request(url, "GET")
     return resp_headers
 
 @api.route(v+"register_slack", methods=["GET", "POST"])
