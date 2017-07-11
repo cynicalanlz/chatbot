@@ -15,10 +15,12 @@ from slackclient import SlackClient
 import threading
 from aiohttp import web
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from user.models import User, SlackTeam
 from utils.lib import get_or_create
+from utils.ai import get_ai_response
+
+import logging
+# logging.basicConfig(level=logging.DEBUG)
 
 try:
     import apiai
@@ -30,12 +32,9 @@ except ImportError:
 
 config = os.environ
 
-# an Engine, which the Session will use for connection
-# resources
-pg_engine = create_engine(config['SQLALCHEMY_DATABASE_URI'])
-Session = sessionmaker(bind=pg_engine)
 
-def pm(sc, ch, txt, thread):
+
+def message(sc, ch, txt, thread):
     return sc.api_call(
       "chat.postMessage",
       channel=ch,
@@ -45,7 +44,9 @@ def pm(sc, ch, txt, thread):
       username="tapdone bot"
     )
 
+
 def slack_messaging(token):
+    print("in slack messaging")
 
     sc = SlackClient(token)    
 
@@ -57,21 +58,17 @@ def slack_messaging(token):
 
     ai = apiai.ApiAI(config['APIAI_CLIENT_ACCESS_TOKEN'])
     users = {}
-    session = Session()
 
     while True:
         buf = sc.rtm_read()
-        if buf == []: continue                
-        for item in buf:            
-            if item['type'] != 'message': continue
-
-            msg = item.get('text', '')
+        if buf == []: continue
+        for item in buf:   
+            if item.get('type', '') != 'message': continue
             subtype = item.get('subtype', '')
             team = item.get('team', '') or item.get('source_team', '')
             if subtype == 'bot_message' or not team: continue
-
             slid = item.get('user', 1)
-            auth = session.query(User.google_auth).filter_by(slid=slid).first()
+                       
             resp =  {
                 'sc' : sc, 
                 'ch' : item['channel'],
@@ -79,35 +76,34 @@ def slack_messaging(token):
                 'thread': item['ts']
             } 
 
+            auth = get_user_google_auth(slid)
+
             if not auth:
                 resp['txt'] = """\
                 Looks like you are not authorized. To authorize Google Calendar open this url in browser %s?slid=%s&tid=%s\
                 """ % (config['GOOGLE_API_REDIRECT_URL'], slid, team)
-                pm(**resp)
-                continue
-        
-            request = ai.text_request()
-            request.session_id = slid
-            request.query = msg
-            airesponse = json.loads(request.getresponse().read().decode('utf8'))
-
-            res = airesponse.get('result',{})
-            msg_type = res.get('metadata', {}).get('intentName','')
-            params = res.get('parameters', {})
-            event_text = params.get('any', "Test task text")
-            event_time = params.get('time', [])
-            event_date = params.get('date', '')
+                message(**resp)
+                continue            
             
-            if len(event_time) == 2:            
-                event_start_time = event_time[0]
-                event_end_time = event_time[1]
+            msg = item.get('text', '')
+            msg_type, event_text, event_start_time, event_end_time, event_date, speech = get_ai_response(ai, slid, msg)
 
-            resp['txt'] = res.get('fulfillment', {}).get('speech', '')
-            
-            if not resp['txt']: continue
-            if msg_type == 'Create task':
+            print ( 'Msg type', msg_type,
+                    'Event text',
+                    event_text,
+                    'Event start',
+                    event_start_time,
 
-                if event_date and event_time and event_end_time:
+                    event_end_time,
+                    speech)
+
+            if not speech: continue
+
+            resp['txt'] = speech
+
+            if msg_type == 'Create task':        
+
+                if event_date and event_start_time and event_end_time:
                     event_start_time = "%sT%s" % (event_date, event_start_time)
                     event_end_time = "%sT%s" % (event_date, event_end_time)
                     event_start_time = parse(event_start_time).replace(tzinfo=pytz.timezone('America/Los_Angeles'))
@@ -117,19 +113,25 @@ def slack_messaging(token):
                     event_start_time = datetime.datetime.now(pytz.timezone('America/Los_Angeles')) + datetime.timedelta(minutes=15)
                     event_end_time = event_start_time + datetime.timedelta(minutes=30)
 
-                e, e_resp = create_event(
-                    session, User, slid, event_text, 
-                    event_start_time, event_end_time) 
+                e, e_resp = create_event(auth, event_text, event_start_time, event_end_time)
                 
                 resp['txt'] += "Event link: {link} .".format(link=e['htmlLink']) + e_resp
 
-            pm(**resp)
+
+            message(**resp)
 
 def get_tokens():
     h = httplib2.Http(".cache")
     (resp_headers, content) = h.request("http://127.0.0.1/api/v1/get_tokens", "GET")
-    tokens = [ x for x in  json.loads(content)['tokens'] if x is not None]
+    tokens = [ x for x in  json.loads(content)['tokens'] if x is not None ]
     return set(tokens)
+
+def get_user_google_auth(slid):
+    h = httplib2.Http(".cache")
+    (resp_headers, content) = h.request("http://127.0.0.1/api/v1/get_user_google_auth?slid=%s" % slid , "GET")
+    print(content), json.loads(content)
+    jsn = json.loads(content)
+    return jsn['google_auth']
 
 
 async def handle(request):
@@ -141,12 +143,17 @@ async def handle(request):
 
 def main():
     tokens = get_tokens()
+
+    i=0
         
-    if len(tokens)  > 0 :
-        loop = asyncio.get_event_loop()
-        executor = ThreadPoolExecutor(len(tokens))
-        for token in tokens:
-            q = asyncio.ensure_future(loop.run_in_executor(executor, slack_messaging, token))
+    # if len(tokens)  > 0 :
+    #     loop = asyncio.get_event_loop()
+    #     executor = ThreadPoolExecutor(len(tokens))
+    #     for token in tokens:
+    #         q = asyncio.ensure_future(loop.run_in_executor(executor, slack_messaging, token))
+
+
+    slack_messaging("xoxb-209348519952-UuxrNJdap3Fg4UzyB6ZrJatP")
 
     app = web.Application()
     app.router.add_get('/slack_team_process', handle)

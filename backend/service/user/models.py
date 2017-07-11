@@ -1,7 +1,8 @@
 from sqlalchemy import Column, Integer, String
-from sqlalchemy.ext.declarative import declarative_base
+import os.path, sys
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
 
-Base = declarative_base()
+from base import Base
 
 class User(Base):
     __tablename__ = 'users'

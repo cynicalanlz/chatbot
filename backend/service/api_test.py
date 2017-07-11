@@ -14,14 +14,4 @@ def client(request):
 
 def test_bad_request(client):
     response = client.get('/')
-
     assert response.status_code == 404
-
-
-def test_hello_world(client):
-    response = client.get('/v1/hello')
-
-    response_text = response.get_data(as_text=True)
-
-    assert 'Hello' in response_text
-    assert 'World' in response_text

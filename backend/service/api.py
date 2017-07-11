@@ -17,6 +17,7 @@ from flask import Blueprint, jsonify, render_template,redirect, request, make_re
 from werkzeug.exceptions import HTTPException
 
 from service.config import config, google_config
+
 from service.user.models import User, SlackTeam
 from service.shared.models import db
 from service.utils.lib import get_or_create
@@ -76,19 +77,13 @@ def post_install():
         id=tid
         )    
 
-
     team.team_name = auth_response['team_name']
     team.team_id = auth_response['team_id']
     team.access_token = auth_response['access_token']
     team.bot_token = auth_response['bot']['bot_access_token']
     team.bot_user_id = auth_response['bot']['bot_user_id']
-
     db.session.commit()
-
-
-    print(team.bot_token)
     slack_team_process(team.bot_token)
-
   
     return jsonify({'msg' : 'ok'})
 
@@ -154,6 +149,17 @@ def get_tokens():
     
     return jsonify(response), 200
 
+@api.route(v+'get_user_google_auth')
+def get_user_google_auth():
+    slid = request.args.get('slid')
+    text = db.session.query(User.google_auth).filter_by(slid=slid).first()
+    print (text)
+    response = {
+        'google_auth' : text
+    }
+    return jsonify(response), 200
+
+@api.route(v+'register_cb')
 @api.route('/health')
 def health():
     response = {
