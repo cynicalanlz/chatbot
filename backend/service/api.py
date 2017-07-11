@@ -100,41 +100,53 @@ def register_google():
     returns page @@TODO: remove page and or redirect to slack.
     """
         
-    uid = request.cookies.get("id") or str(shortuuid.ShortUUID().random(length=22))    
     code = request.args.get('code')
     tid = request.args.get('tid')
-    slid = request.args.get('slid')
+    slid = request.args.get('slid') or request.args.get('state')
+    uid = request.cookies.get(tid) or str(shortuuid.ShortUUID().random(length=22))
+
+    print(slid)
+
 
     if not slid and not code:
         return jsonify({
             'msg' : 'Slid or code not set'
             })
 
+    usr, created = get_or_create(
+        db.session, 
+        User, 
+        {   
+            'slid' : slid, 
+            'team_id' : tid,
+            'id' : uid
+        }, 
+        slid=slid
+    )
 
-    usr, created = get_or_create(db.session, User, default_values={'slid' : slid, 'team_id' : tid }, id=uid) # user created and slack id is set
+    print(usr.id)
 
     if usr.google_auth:
         creds = Credentials.new_from_json(json.loads(usr.google_auth))
         if creds and not creds.invalid:
             resp = events_resp(creds, usr)
-            return resp
+            return resp    
  
     flow = OAuth2WebServerFlow(**google_config)    
 
-    if not code:            
-        auth_uri = flow.step1_get_authorize_url()
-        return redirect(auth_uri, code=302)
+    if not code and tid:            
+        auth_uri = flow.step1_get_authorize_url(state=slid)
+        redirect_response = make_response(redirect(auth_uri, code=302))
+        redirect_response.set_cookie(tid, uid)
+        return redirect_response
 
     creds = flow.step2_exchange(code)
-    creds_json = creds.to_json()   
+    creds_json = creds.to_json() 
 
-    usr, created = get_or_create(db.session, User, default_values={'slid' : slid }, id=uid)        
-    usr.google_auth = json.dumps(creds.to_json())    
+    usr.google_auth = json.dumps(creds.to_json())
     db.session.commit()
-    resp = events_resp(creds, usr)
 
-    if not 'id' in request.cookies:
-        resp.set_cookie('id', uid )
+    resp = events_resp(creds, usr)
 
     return resp
 
@@ -160,7 +172,7 @@ def get_user_google_auth():
     }
     return jsonify(response), 200
 
-@api.route(v+'register_cb')
+
 @api.route('/health')
 def health():
     response = {
@@ -170,3 +182,6 @@ def health():
     return jsonify(response), 200
 
 
+@api.route("/spec")
+def spec():
+    return jsonify(swagger(app))

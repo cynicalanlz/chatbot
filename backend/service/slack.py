@@ -69,9 +69,9 @@ def slack_messaging(token):
                 'thread': item['ts']
             } 
 
-            auth = get_user_google_auth(slid)
+            auth = get_user_google_auth(slid)            
 
-            if not auth:
+            if not auth or auth[0] == None:
                 resp['txt'] = """\
                 Looks like you are not authorized. To authorize Google Calendar open this url in browser %s?slid=%s&tid=%s\
                 """ % (config['GOOGLE_API_REDIRECT_URL'], slid, team)
@@ -115,8 +115,13 @@ def get_user_google_auth(slid):
     format_string = config['FLASK_PROTOCOL']+"://"+config['FLASK_HOST']+"/api/v1/get_user_google_auth?slid=%s"
     url = format_string % slid 
     (resp_headers, content) = h.request(url, "GET")
-    jsn = json.loads(content)
-    return jsn['google_auth']
+    if content:
+        jsn = json.loads(content)
+        val = jsn['google_auth']    
+    else:
+        val = False
+        
+    return val
 
 
 async def handle(request):

@@ -12,17 +12,12 @@ certifi==2017.4.17        # via requests
 chardet==3.0.4            # via aiohttp, requests
 click==6.7                # via flask
 decorator==4.0.11         # via retry
-flask-script==2.0.5
 flask-sqlalchemy==2.2
+flask-swagger==0.2.13
 flask==0.12
 google-api-python-client==1.6.2
-graphene-sqlalchemy==1.1.1
-graphene==1.4.1           # via graphene-sqlalchemy
-graphql-core==1.1         # via graphene, graphql-relay
-graphql-relay==0.4.5      # via graphene
 httplib2==0.10.3          # via google-api-python-client, oauth2client
 idna==2.5                 # via requests
-iso8601==0.1.11           # via graphene-sqlalchemy
 itsdangerous==0.24        # via flask
 jinja2==2.9.6             # via flask
 mako==1.0.6               # via alembic
@@ -30,7 +25,6 @@ markupsafe==1.0           # via jinja2, mako
 multidict==3.1.1          # via aiohttp, yarl
 numpy==1.13.0             # via apiai
 oauth2client==4.1.1       # via google-api-python-client
-promise==2.0.2            # via graphene, graphql-core, graphql-relay
 psycopg2==2.7.1
 py==1.4.34                # via retry
 pyasn1-modules==0.0.9     # via oauth2client
@@ -38,15 +32,14 @@ pyasn1==0.2.3             # via oauth2client, pyasn1-modules, rsa
 python-dateutil==2.6.0    # via alembic
 python-editor==1.0.3      # via alembic
 pytz==2017.2
+pyyaml==3.12              # via flask-swagger
 requests==2.18.1          # via slackclient
 retry==0.9.2
 rsa==3.4.2                # via oauth2client
 shortuuid==0.5.0
-singledispatch==3.4.0.3   # via graphene-sqlalchemy
-six==1.10.0               # via google-api-python-client, graphene, graphene-sqlalchemy, graphql-core, graphql-relay, oauth2client, promise, python-dateutil, singledispatch, slackclient, websocket-client
+six==1.10.0               # via google-api-python-client, oauth2client, python-dateutil, slackclient, websocket-client
 slackclient==1.0.6
-sqlalchemy==1.1.11        # via alembic, flask-sqlalchemy, graphene-sqlalchemy
-typing==3.6.1             # via promise
+sqlalchemy==1.1.11        # via alembic, flask-sqlalchemy
 uritemplate==3.0.0        # via google-api-python-client
 urllib3==1.21.1           # via requests
 websocket-client==0.44.0  # via slackclient
