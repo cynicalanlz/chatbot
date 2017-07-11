@@ -153,7 +153,6 @@ def get_tokens():
 def get_user_google_auth():
     slid = request.args.get('slid')
     text = db.session.query(User.google_auth).filter_by(slid=slid).first()
-    print (text)
     response = {
         'google_auth' : text
     }

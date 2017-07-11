@@ -15,12 +15,8 @@ from slackclient import SlackClient
 import threading
 from aiohttp import web
 
-from user.models import User, SlackTeam
 from utils.lib import get_or_create
 from utils.ai import get_ai_response
-
-import logging
-# logging.basicConfig(level=logging.DEBUG)
 
 try:
     import apiai
@@ -46,10 +42,7 @@ def message(sc, ch, txt, thread):
 
 
 def slack_messaging(token):
-    print("in slack messaging")
-
     sc = SlackClient(token)    
-
     if not sc.rtm_connect():
         print("""\
         App is using legacy token, which probably should be used from one pc only. Connection Failed, invalid token\
@@ -88,15 +81,6 @@ def slack_messaging(token):
             msg = item.get('text', '')
             msg_type, event_text, event_start_time, event_end_time, event_date, speech = get_ai_response(ai, slid, msg)
 
-            print ( 'Msg type', msg_type,
-                    'Event text',
-                    event_text,
-                    'Event start',
-                    event_start_time,
-
-                    event_end_time,
-                    speech)
-
             if not speech: continue
 
             resp['txt'] = speech
@@ -122,14 +106,16 @@ def slack_messaging(token):
 
 def get_tokens():
     h = httplib2.Http(".cache")
-    (resp_headers, content) = h.request("http://127.0.0.1/api/v1/get_tokens", "GET")
+    (resp_headers, content) = h.request(config['FLASK_PROTOCOL']+"://"+config['FLASK_HOST']+"/api/v1/get_tokens", "GET")
     tokens = [ x for x in  json.loads(content)['tokens'] if x is not None ]
     return set(tokens)
 
 def get_user_google_auth(slid):
     h = httplib2.Http(".cache")
-    (resp_headers, content) = h.request("http://127.0.0.1/api/v1/get_user_google_auth?slid=%s" % slid , "GET")
-    print(content), json.loads(content)
+    format_string = config['FLASK_PROTOCOL']+"://"+config['FLASK_HOST']+"/api/v1/get_user_google_auth?slid=%s"
+    url = format_string % slid 
+    print (url)
+    (resp_headers, content) = h.request(url, "GET")
     jsn = json.loads(content)
     return jsn['google_auth']
 
@@ -146,18 +132,15 @@ def main():
 
     i=0
         
-    # if len(tokens)  > 0 :
-    #     loop = asyncio.get_event_loop()
-    #     executor = ThreadPoolExecutor(len(tokens))
-    #     for token in tokens:
-    #         q = asyncio.ensure_future(loop.run_in_executor(executor, slack_messaging, token))
-
-
-    slack_messaging("xoxb-209348519952-UuxrNJdap3Fg4UzyB6ZrJatP")
+    if len(tokens)  > 0 :
+        loop = asyncio.get_event_loop()
+        executor = ThreadPoolExecutor(len(tokens))
+        for token in tokens:
+            q = asyncio.ensure_future(loop.run_in_executor(executor, slack_messaging, token))
 
     app = web.Application()
     app.router.add_get('/slack_team_process', handle)
-    web.run_app(app, host='127.0.0.1', port=8080)
+    web.run_app(app, host=config['SLACK_HOST'], port=int(config['SLACK_PORT']))
 
     loop.run_forever()
 
