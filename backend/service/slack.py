@@ -35,7 +35,6 @@ def message(sc, ch, txt, thread):
       "chat.postMessage",
       channel=ch,
       text=txt,
-      thread_ts=thread,
       as_user=False,
       username="tapdone bot"
     )
