@@ -13,11 +13,8 @@ def get_or_create(session, model, defaults=None, **kwargs):
             session.begin(nested=True)
             try:
                 params = dict((k, v) for k, v in kwargs.items() if not isinstance(v, ClauseElement))
-                print(params)
                 params.update(defaults)
-                print(defaults,params)
                 instance = model(**params)
-
                 session.add(instance)
                 session.commit()
 

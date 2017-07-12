@@ -28,8 +28,6 @@ except ImportError:
 
 config = os.environ
 
-
-
 def message(sc, ch, txt, thread):
     return sc.api_call(
       "chat.postMessage",
@@ -39,6 +37,19 @@ def message(sc, ch, txt, thread):
       username="tapdone bot"
     )
 
+def get_datetimes(event_date, event_start_time ,event_end_time):
+
+    if event_date and event_start_time and event_end_time:
+
+        event_start_time = "%sT%s" % (event_date, event_start_time)
+        event_end_time = "%sT%s" % (event_date, event_end_time)
+        event_start_time = parse(event_start_time)
+        event_end_time = parse(event_end_time)        
+    else:
+        event_start_time = datetime.datetime.now() + datetime.timedelta(minutes=15)
+        event_end_time = event_start_time + datetime.timedelta(minutes=30)
+
+    return event_start_time, event_end_time
 
 def slack_messaging(token):
     sc = SlackClient(token)    
@@ -84,22 +95,10 @@ def slack_messaging(token):
 
             resp['txt'] = speech
 
-            if msg_type == 'Create task':        
-
-                if event_date and event_start_time and event_end_time:
-                    event_start_time = "%sT%s" % (event_date, event_start_time)
-                    event_end_time = "%sT%s" % (event_date, event_end_time)
-                    event_start_time = parse(event_start_time).replace(tzinfo=pytz.timezone('America/Los_Angeles'))
-                    event_end_time = parse(event_end_time).replace(tzinfo=pytz.timezone('America/Los_Angeles'))
-
-                else:
-                    event_start_time = datetime.datetime.now(pytz.timezone('America/Los_Angeles')) + datetime.timedelta(minutes=15)
-                    event_end_time = event_start_time + datetime.timedelta(minutes=30)
-
-                e, e_resp = create_event(auth, event_text, event_start_time, event_end_time)
-                
-                resp['txt'] += "Event link: {link} .".format(link=e['htmlLink']) + e_resp
-
+            if msg_type == 'Create task':
+                event_start_time, event_end_time = get_datetimes(event_date, event_start_time, event_end_time)
+                e, e_resp = create_event(auth, event_text, event_start_time, event_end_time)            
+                resp['txt'] += "\nEvent link: {link} .\n".format(link=e['htmlLink']) + e_resp
 
             message(**resp)
 
@@ -135,11 +134,13 @@ def main():
 
     i=0
         
-    if len(tokens)  > 0 :
-        loop = asyncio.get_event_loop()
-        executor = ThreadPoolExecutor(len(tokens))
-        for token in tokens:
-            q = asyncio.ensure_future(loop.run_in_executor(executor, slack_messaging, token))
+    # if len(tokens)  > 0 :
+    #     loop = asyncio.get_event_loop()
+    #     executor = ThreadPoolExecutor(len(tokens))
+    #     for token in tokens:
+    #         q = asyncio.ensure_future(loop.run_in_executor(executor, slack_messaging, token))
+
+    slack_messaging("xoxb-210037203348-ExAGNRAIVQ63sWI6cXLnHIS2")
 
     app = web.Application()
     app.router.add_get('/slack_team_process', handle)

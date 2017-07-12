@@ -105,9 +105,6 @@ def register_google():
     slid = request.args.get('slid') or request.args.get('state')
     uid = request.cookies.get(tid) or str(shortuuid.ShortUUID().random(length=22))
 
-    print(slid)
-
-
     if not slid and not code:
         return jsonify({
             'msg' : 'Slid or code not set'
@@ -123,8 +120,6 @@ def register_google():
         }, 
         slid=slid
     )
-
-    print(usr.id)
 
     if usr.google_auth:
         creds = Credentials.new_from_json(json.loads(usr.google_auth))
