@@ -22,8 +22,10 @@ from service.user.models import User, SlackTeam
 from service.shared.models import db
 from service.utils.lib import get_or_create
 from service.utils.calendar import get_service, get_events, create_event
-
 from slackclient import SlackClient
+
+from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
+
 
 
 api = Blueprint('api', __name__)
@@ -159,13 +161,50 @@ def get_tokens():
     return jsonify(response), 200
 
 @api.route(v+'get_user_google_auth')
-def get_user_google_auth():
+def get_user_google_auth():   
     slid = request.args.get('slid')
-    text = db.session.query(User.google_auth).filter_by(slid=slid).first()
-    response = {
-        'google_auth' : text
-    }
-    return jsonify(response), 200
+
+    try:
+        usr = db.session.query(User).filter_by(slid=slid).one()
+    except NoResultFound:
+        return jsonify({
+            'google_auth' : False
+        }), 404
+    except MultipleResultsFound:
+        return jsonify({
+            'google_auth' : 'multiple'
+        }), 404
+
+    auth = usr.google_auth
+
+    if not auth:
+        return jsonify({
+            'google_auth' : False
+        }), 404
+
+    jsn = json.loads(auth)
+    credentials = Credentials.new_from_json(jsn)
+
+    if credentials.invalid or not credentials:                
+        return jsonify({
+            'google_auth' : False,
+            'reason' : 'invalid'
+        }), 404                
+
+    if credentials.access_token_expired:
+        h = httplib2.Http(".cache")
+        credentials.refresh(h)            
+        usr.google_auth = json.dumps(credentials.to_json())
+        db.session.commit()
+                 
+        return jsonify({
+            'google_auth' : credentials.to_json()                    
+        }), 200
+
+            
+    return jsonify({
+        'google_auth' : auth
+    }), 200
 
 
 @api.route('/health')

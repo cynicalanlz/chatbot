@@ -40,11 +40,15 @@ def message(sc, ch, txt, thread):
 def get_datetimes(event_date, event_start_time ,event_end_time):
 
     if event_date and event_start_time and event_end_time:
-
         event_start_time = "%sT%s" % (event_date, event_start_time)
         event_end_time = "%sT%s" % (event_date, event_end_time)
         event_start_time = parse(event_start_time)
-        event_end_time = parse(event_end_time)        
+        event_end_time = parse(event_end_time)
+    elif event_date:
+        event_start_time = "%sT%s" % (event_date, "00:00")
+        event_end_time = "%sT%s" % (event_date, "23:59")
+        event_start_time = parse(event_start_time)
+        event_end_time = parse(event_end_time)
     else:
         event_start_time = datetime.datetime.now() + datetime.timedelta(minutes=15)
         event_end_time = event_start_time + datetime.timedelta(minutes=30)
@@ -79,14 +83,21 @@ def slack_messaging(token):
                 'thread': item['ts']
             } 
 
-            auth = get_user_google_auth(slid)            
+            auth = get_user_google_auth(slid)   
 
-            if not auth or auth[0] == None:
+            if not auth:
                 resp['txt'] = """\
                 Looks like you are not authorized. To authorize Google Calendar open this url in browser %s?slid=%s&tid=%s\
                 """ % (config['GOOGLE_API_REDIRECT_URL'], slid, team)
                 message(**resp)
-                continue            
+                continue      
+
+            elif auth == 'multiple':
+                resp['txt'] = """\
+                Looks like you have multiple records for your id. Contact the app admin.\
+                """
+                message(**resp)
+                continue    
             
             msg = item.get('text', '')
             msg_type, event_text, event_start_time, event_end_time, event_date, speech = get_ai_response(ai, slid, msg)
@@ -113,12 +124,13 @@ def get_user_google_auth(slid):
     format_string = config['FLASK_PROTOCOL']+"://"+config['FLASK_HOST']+"/api/v1/get_user_google_auth?slid=%s"
     url = format_string % slid 
     (resp_headers, content) = h.request(url, "GET")
-    if content:
-        jsn = json.loads(content)
-        val = jsn['google_auth']    
-    else:
-        val = False
-        
+    
+    if not content:
+        return False
+    
+    jsn = json.loads(content)    
+    val = jsn.get('google_auth', False)
+
     return val
 
 
@@ -140,7 +152,7 @@ def main():
     #     for token in tokens:
     #         q = asyncio.ensure_future(loop.run_in_executor(executor, slack_messaging, token))
 
-    slack_messaging("xoxb-210037203348-ExAGNRAIVQ63sWI6cXLnHIS2")
+    slack_messaging("xoxb-209348519952-UuxrNJdap3Fg4UzyB6ZrJatP")
 
     app = web.Application()
     app.router.add_get('/slack_team_process', handle)

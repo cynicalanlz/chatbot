@@ -62,11 +62,7 @@ def has_overlap(A_start, A_end, B_start, B_end):
     return latest_start <= earliest_end
 
 def create_event(google_auth, event_text, event_start_new, event_end_new):
-    creds = Credentials.new_from_json(json.loads(google_auth[0]))
-        
-    if not creds or creds.invalid:
-        return "Can't find your slid. Are you registered?"
-
+    creds = Credentials.new_from_json(json.loads(google_auth))
     service = get_service(creds)
     events = get_events(service)        
     primary_calendar = get_primary_calendar(service)
@@ -92,7 +88,10 @@ def create_event(google_auth, event_text, event_start_new, event_end_new):
             if has_overlap(event_start, event_end, event_start_new, event_end_new):
                 overlap_texts.append('%s, which is between %s - %s' % (summary, event_start, event_end))
 
-        res =  'Overlaps with: %s.' % (','.join(overlap_texts))
+        if len(overlap_texts) > 0:
+            res =  'Overlaps with: %s.' % (','.join(overlap_texts))
+        else:
+            res = ''
     else:
         res = ''
 
