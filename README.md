@@ -104,7 +104,17 @@ http://ec2-34-212-103-70.us-west-2.compute.amazonaws.com
 
 ## App urls
 
-/api/v1/register_cb
+Endpoints:
+
+```
+Start with: /api/v1/
+
+register_slack_team - кнопка для регистрации новой слек команды
+register_slack - сюда приходит авторизационные данные слека и записываются в бд
+register_cb - регистрирует гугл пользователя
+get_tokens - получает slack токены
+get_user_google_auth - получает объект с авторизационными данными пользователя
+```
 
 ## Docker bot commands 
 
