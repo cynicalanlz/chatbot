@@ -1,5 +1,5 @@
 ## Install workflow
-
+```
 clone repo
 cd to project folder
 sudo apt-get install supervisord python build-essential checkinstall
@@ -13,28 +13,31 @@ source venv/bin/activate
 pip install --upgrade pip
 pip install -r backend/requirements/shared.txt
 pip install -r backend/requirements/dev.txt
-
+```
 ## Compile dependencies
-
+```
 cd to project folder
 pip-compile backend/requirements/shared.in --output-file backend/requirements/shared.txt 
 pip-compile backend/requirements/dev.in --output-file backend/requirements/dev.txt
-
+```
 # Install docker
-
+```
 https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-16-04
-
+```
 
 ## Launch in container
-
+```
 sudo ./bin/build.sh 
 sudo docker rm -f /tapdone
 sudo ./bin/run.sh
-
+```
 ## Launch from supervisord
-
+```
 **adapt** paths in supervisord_local.conf
-
+cd to project folder
+cd backend
+supervisord -c ../supervisord_local.conf   
+```
 
 ## DB reset
 
