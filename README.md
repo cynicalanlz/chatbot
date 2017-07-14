@@ -42,6 +42,7 @@ cd config
 python convert_config.py
 cat tapdone3_supervisord.txt 
 copy paste to evironment parameter in supervisord config
+```
 
 ```
 **adapt** paths in supervisord_local.conf
@@ -49,8 +50,6 @@ cd to project folder
 cd backend
 supervisord -c ../supervisord_local.conf   
 ```
-
-
 
 ## DB initialization
 
