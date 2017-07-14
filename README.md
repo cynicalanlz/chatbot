@@ -158,6 +158,12 @@ open http://`docker-machine ip default`/api/v1/health
 pip-compile backend/requirements/shared.in --output-file backend/requirements/shared.txt 
 ```
 
+## Launch slack team registration
+
+open http://ec2-34-212-103-70.us-west-2.compute.amazonaws.com/api/v1/register_slack_team
+register slack team
+add tapdone_bot to dm as in https://docs.google.com/document/d/1SHUAwvk2ZVQel5igwMDjdnGSb0rAcLNO6QuxG6DoNt0/edit#bookmark=id.2kklkqohtgpk
+
 ## Sample deploy script build instructions
 
 1) Retrieve the docker login command that you can use to authenticate your Docker client to your registry:
