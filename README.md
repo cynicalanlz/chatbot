@@ -1,3 +1,41 @@
+## Install workflow
+
+clone repo
+cd to project folder
+sudo apt-get install supervisord python build-essential checkinstall
+wget https://www.python.org/ftp/python/3.5.2/Python-3.5.2.tgz
+sudo tar xzf Python-3.5.2.tgz
+cd Python-3.5.2
+sudo ./configure
+sudo make altinstall
+python3.5 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r backend/requirements/shared.txt
+pip install -r backend/requirements/dev.txt
+
+## Compile dependencies
+
+cd to project folder
+pip-compile backend/requirements/shared.in --output-file backend/requirements/shared.txt 
+pip-compile backend/requirements/dev.in --output-file backend/requirements/dev.txt
+
+# Install docker
+
+https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-16-04
+
+
+## Launch in container
+
+sudo ./bin/build.sh 
+sudo docker rm -f /tapdone
+sudo ./bin/run.sh
+
+## Launch from supervisord
+
+**adapt** paths in supervisord_local.conf
+
+
 ## DB reset
 
 
@@ -67,7 +105,7 @@ sudo docker exec -i -t $(sudo docker ps -q) /bin/bash
 ## Start 
 
 ```
-sudo /etc/init.d/nginx stop && sudo ./bin/build.sh && sudo docker rm -f /tapdone && sudo ./bin/run.sh
+
 ```
 ## Deploy
 
