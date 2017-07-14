@@ -142,22 +142,14 @@ get_tokens - получает slack токены
 get_user_google_auth - получает объект с авторизационными данными пользователя
 ```
 
-## Docker commands
+## Useful commands
 
 ```
 docker images
 docker ps -a
-```
-
-## Tutorial
-```
-
 ./bin/build.sh
 ./bin/run.sh
 open http://`docker-machine ip default`/api/v1/health
-```
-
-```
 ./bin/cleanup.sh
 ```
 
