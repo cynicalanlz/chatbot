@@ -31,7 +31,7 @@ sudo ./bin/build.sh
 sudo docker rm -f /tapdone
 sudo ./bin/run.sh
 ```
-## Launch from supervisord
+## or launch from supervisord
 ```
 **adapt** paths in supervisord_local.conf
 cd to project folder
