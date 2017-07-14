@@ -20,6 +20,8 @@ cd to project folder
 pip-compile backend/requirements/shared.in --output-file backend/requirements/shared.txt 
 pip-compile backend/requirements/dev.in --output-file backend/requirements/dev.txt
 ```
+``
+
 # Install docker
 ```
 https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-16-04
@@ -32,6 +34,16 @@ sudo docker rm -f /tapdone
 sudo ./bin/run.sh
 ```
 ## or launch from supervisord
+
+
+# Compile supervisord config
+```
+cd to project folder
+cd config
+python convert_config.py
+cat tapdone3_supervisord.txt 
+copy paste to evironment parameter in supervisord config
+
 ```
 **adapt** paths in supervisord_local.conf
 cd to project folder
