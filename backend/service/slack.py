@@ -140,10 +140,9 @@ class Handler:
         self.running = tokens
 
     @asyncio.coroutine
-    def handle_slack_team(self, request):
+    def handle_slack_team(self, request):        
         token = request.query.get('token', "")
-        self.running.append(token)
-        print(self.running)
+        self.running.add(token)
         if token not in self.running:
             try:
                 t = threading.Thread(target=slack_messaging, args=(token,))
@@ -168,7 +167,7 @@ def main():
 
     app = web.Application()
     handler = Handler(tokens)
-    app.router.add_get('/slack_api/v1/slack_team_process', Handler.handle_slack_team)
+    app.router.add_get('/slack_api/v1/slack_team_process', handler.handle_slack_team)
     web.run_app(app, host=config['SLACK_HOST'], port=int(config['SLACK_PORT']))
 
     loop.run_forever()

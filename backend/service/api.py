@@ -64,8 +64,6 @@ def post_install():
     # An empty string is a valid token for this request
     sc = SlackClient("")
 
-    print("slack auth")
-
     # Request the auth tokens from Slack
     auth_response = sc.api_call(
         "oauth.access",
@@ -75,9 +73,7 @@ def post_install():
     )
     
     tid = shortuuid.ShortUUID().random(length=22)
-    slack_tid = auth_response['team_id']
-
-    print("getting")
+    slack_tid = auth_response.get('team_id', '0')
 
     team, created = get_or_create(
         db.session, 
@@ -88,9 +84,6 @@ def post_install():
         team_id=slack_tid
     )
 
-    print("end getting")
-
-    
     if not auth_response.get('ok',False):
         return jsonify({'msg' : 'not ok'})
     
