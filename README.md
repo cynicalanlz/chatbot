@@ -124,24 +124,6 @@ sudo ./bin/build.sh && sudo docker tag opagrp/tapdone:latest 424467247636.dkr.ec
 Перезапустить таск на кластере https://us-west-2.console.aws.amazon.com/ecs/home?region=us-west-2#/clusters/cluster1/tasks
 ```
 
-
-```
-docker-machine start
-`docker-machine env`
-docker images
-docker ps -a
-```
-
-```
-./bin/build.sh
-./bin/run.sh
-open http://`docker-machine ip default`/api/v1/hello
-```
-
-```
-./bin/cleanup.sh
-```
-
 ## App location
 
 http://ec2-34-212-103-70.us-west-2.compute.amazonaws.com
@@ -160,9 +142,24 @@ get_tokens - получает slack токены
 get_user_google_auth - получает объект с авторизационными данными пользователя
 ```
 
-## Docker bot commands 
+## Docker commands
 
-https://us-west-2.console.aws.amazon.com/ecs/home?region=us-west-2#/repositories/tapdone3#images;tagStatus=ALL
+```
+docker images
+docker ps -a
+```
+
+## Tutorial
+```
+
+./bin/build.sh
+./bin/run.sh
+open http://`docker-machine ip default`/api/v1/health
+```
+
+```
+./bin/cleanup.sh
+```
 
 ## Compile dependancies
 ```
