@@ -115,10 +115,6 @@ sudo docker stop $(sudo docker ps -aq)
 sudo docker exec -i -t $(sudo docker ps -q) /bin/bash
 ```
 
-## Start 
-
-```
-
 ```
 ## Deploy
 
