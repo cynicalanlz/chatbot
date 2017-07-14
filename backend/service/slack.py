@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os
+import os, sys
 import yajl as json
 import datetime
 import shortuuid
@@ -135,10 +135,16 @@ def get_user_google_auth(slid):
 
 
 async def handle(request):
-    token = request.query.get('token', "") 
-    t = threading.Thread(target=slack_messaging, args=(token,))
-    t.daemon = True
-    t.start()
+    token = request.query.get('token', "")
+    print('in handle', token)
+    try:
+        print('starting thread')
+        t = threading.Thread(target=slack_messaging, args=(token,))
+        t.daemon = True
+        t.start()
+    except:
+        return web.Response(text=str(sys.exc_info()[0]))
+
     return web.Response(text='ok')
 
 def main():
@@ -153,7 +159,7 @@ def main():
             q = asyncio.ensure_future(loop.run_in_executor(executor, slack_messaging, token))
 
     app = web.Application()
-    app.router.add_get('/slack_team_process', handle)
+    app.router.add_get('/slack_api/v1/slack_team_process', handle)
     web.run_app(app, host=config['SLACK_HOST'], port=int(config['SLACK_PORT']))
 
     loop.run_forever()

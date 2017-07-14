@@ -50,8 +50,8 @@ def register_slack_team():
     return render_template('register_slack.html')
 
 def slack_team_process(token):
-    h = httplib2.Http(".cache")
-    format_string = config['SLACK_PROTOCOL']+"://"+config['SLACK_HOST']+"/api/v1/slack_team_process?token=%s"
+    h = httplib2.Http(".cache")    
+    format_string = config['SLACK_PROTOCOL']+"://"+config['SLACK_HOST']+"/slack_api/v1/slack_team_process?token=%s"    
     url = format_string % token
     (resp_headers, content) = h.request(url, "GET")
     return resp_headers
@@ -64,6 +64,8 @@ def post_install():
     # An empty string is a valid token for this request
     sc = SlackClient("")
 
+    print("slack auth")
+
     # Request the auth tokens from Slack
     auth_response = sc.api_call(
         "oauth.access",
@@ -71,22 +73,39 @@ def post_install():
         client_secret=config['SLACK_CLIENT_SECRET'],
         code=auth_code
     )
+    print("slack auth")
 
     tid = shortuuid.ShortUUID().random(length=22)
+
+    print("getting")
 
     team, created = get_or_create(
         db.session, 
         SlackTeam,
-        default_values={'id' : tid },
-        id=tid
-        )    
+        {
+            'id' : tid 
+        },
+        id=tid)
+
+    print("end getting")
+
+    
+    if not auth_response.get('ok',False):
+        return jsonify({'msg' : 'not ok'})
+    
+
+    print('start setting')
 
     team.team_name = auth_response['team_name']
     team.team_id = auth_response['team_id']
     team.access_token = auth_response['access_token']
     team.bot_token = auth_response['bot']['bot_access_token']
     team.bot_user_id = auth_response['bot']['bot_user_id']
+
+    print('end setting')
     db.session.commit()
+    print('start team process')
+    print(team.bot_token)
     slack_team_process(team.bot_token)
   
     return jsonify({'msg' : 'ok'})
