@@ -11,9 +11,9 @@ async-timeout==1.2.1      # via aiohttp
 certifi==2017.4.17        # via requests
 chardet==3.0.4            # via aiohttp, requests
 click==6.7                # via flask
+dateparser==0.6.0
 decorator==4.0.11         # via retry
 flask-sqlalchemy==2.2
-flask-swagger==0.2.13
 flask==0.12
 google-api-python-client==1.6.2
 httplib2==0.10.3          # via google-api-python-client, oauth2client
@@ -29,18 +29,19 @@ psycopg2==2.7.1
 py==1.4.34                # via retry
 pyasn1-modules==0.0.9     # via oauth2client
 pyasn1==0.2.3             # via oauth2client, pyasn1-modules, rsa
-python-dateutil==2.6.0    # via alembic
+python-dateutil==2.6.0    # via alembic, dateparser
 python-editor==1.0.3      # via alembic
 pytz==2017.2
-pyyaml==3.12              # via flask-swagger
+regex==2017.7.11          # via dateparser
 requests==2.18.1          # via slackclient
 retry==0.9.2
-rfc3339==5.2
 rsa==3.4.2                # via oauth2client
+ruamel.yaml==0.15.18      # via dateparser
 shortuuid==0.5.0
 six==1.10.0               # via google-api-python-client, oauth2client, python-dateutil, slackclient, websocket-client
 slackclient==1.0.6
 sqlalchemy==1.1.11        # via alembic, flask-sqlalchemy
+tzlocal==1.4              # via dateparser
 uritemplate==3.0.0        # via google-api-python-client
 urllib3==1.21.1           # via requests
 websocket-client==0.44.0  # via slackclient

@@ -1,3 +1,4 @@
+import os
 import httplib2
 import datetime
 import yajl as json
@@ -9,10 +10,10 @@ from oauth2client import tools
 from oauth2client.file import Storage
 from oauth2client.client import OAuth2WebServerFlow, Credentials
 
-from dateutil.parser import *
-
+from dateparser import parse
 import pytz
-from rfc3339 import rfc3339
+
+config = os.environ
 
 def get_service(creds):
     http = httplib2.Http()
@@ -24,7 +25,7 @@ def get_service(creds):
 def get_events(service):
     now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
     eventsResult = service.events().list(
-        calendarId='primary', timeMin=now, maxResults=10, singleEvents=True,
+        calendarId='primary', timeMin=now, maxResults=2500, singleEvents=True,
         orderBy='startTime').execute()
     events = eventsResult.get('items', [])
 
@@ -62,7 +63,8 @@ def has_overlap(A_start, A_end, B_start, B_end):
     return latest_start <= earliest_end
 
 def create_event(google_auth, event_text, event_start_new, event_end_new):
-    creds = Credentials.new_from_json(json.loads(google_auth))
+    auth = json.loads(google_auth)    
+    creds = Credentials.new_from_json(auth)
     service = get_service(creds)
     events = get_events(service)        
     primary_calendar = get_primary_calendar(service)
@@ -76,20 +78,25 @@ def create_event(google_auth, event_text, event_start_new, event_end_new):
     overlap_texts = []
 
     timezone = pytz.timezone(tz)
-
     event_start_new = timezone.localize(event_start_new)
     event_end_new = timezone.localize(event_end_new)
 
+    parse_settings = {'RETURN_AS_TIMEZONE_AWARE': True}
+    overlap_texts_format_string = '- %s, which is between %s - %s;\n'
+    
     if events and len(events) > 0:
-        for start, end, summary in events:
-            event_start = parse(start)
-            event_end = parse(end)
+        for start, end, summary in events:   
+            event_start = parse(start, settings=parse_settings)
+            event_end = parse(start, settings=parse_settings)
+
+            if event_start == event_start_new and event_end == event_end_new:
+                overlap_texts.append( overlap_texts_format_string % (summary, event_start, event_end))
 
             if has_overlap(event_start, event_end, event_start_new, event_end_new):
-                overlap_texts.append('%s, which is between %s - %s' % (summary, event_start, event_end))
+                overlap_texts.append( overlap_texts_format_string % (summary, event_start, event_end))
 
         if len(overlap_texts) > 0:
-            res =  'Overlaps with: %s.' % (','.join(overlap_texts))
+            res =  'Overlaps with: \n %s.' % (''.join(overlap_texts))
         else:
             res = ''
     else:
@@ -100,18 +107,18 @@ def create_event(google_auth, event_text, event_start_new, event_end_new):
       # 'location': '800 Howard St., San Francisco, CA 94103',
       # 'description': 'A chance to hear more about Google\'s developer products.',
       'start': {
-        'dateTime':  rfc3339(event_start_new),
+        'dateTime':  event_start_new.isoformat("T"),
         # 'timeZone': tz,
       },
       'end': {
-        'dateTime': rfc3339(event_end_new),
+        'dateTime': event_end_new.isoformat("T"),
         # 'timeZone': tz,
       },
       'reminders': {
         'useDefault': False,
         'overrides': [
-          {'method': 'email', 'minutes': 5 },
-          {'method': 'popup', 'minutes': 5 },
+          {'method': 'email', 'minutes': int(config['DEFAULT_NOTIFY_MINUTES']) },
+          {'method': 'popup', 'minutes': int(config['DEFAULT_NOTIFY_MINUTES']) },
         ],
       },
     }

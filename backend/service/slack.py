@@ -152,8 +152,6 @@ def main():
         for token in tokens:
             q = asyncio.ensure_future(loop.run_in_executor(executor, slack_messaging, token))
 
-    #  in testing slack_messaging("xoxb-209348519952-UuxrNJdap3Fg4UzyB6ZrJatP")
-
     app = web.Application()
     app.router.add_get('/slack_team_process', handle)
     web.run_app(app, host=config['SLACK_HOST'], port=int(config['SLACK_PORT']))
