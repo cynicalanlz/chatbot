@@ -64,18 +64,20 @@ GRANT ALL ON SCHEMA public TO postgres;
 GRANT ALL ON SCHEMA public TO public;
 ```
 
-## DB init op1
+## DB initialization
 
 ```
-from sqlalchemy import create_engine
-from sqlalchemy.orm.session import sessionmaker
-from service.user.models import Base
-import os
-config = os.environ
-engine = create_engine(config['SQLALCHEMY_DATABASE_URI'])
-session_factory = sessionmaker(engine)
-session_factory.close_all() # <- don't forget to close
-Base.metadata.create_all(engine)
+sudo docker exec -i -t $(sudo docker ps -q) /bin/bash
+python
+   from sqlalchemy import create_engine
+   from sqlalchemy.orm.session import sessionmaker
+   from service.user.models import Base
+   import os
+   config = os.environ
+   engine = create_engine(config['SQLALCHEMY_DATABASE_URI'])
+   session_factory = sessionmaker(engine)
+   session_factory.close_all() # <- don't forget to close
+   Base.metadata.create_all(engine)
 ```
 
 ## DB reset user info
