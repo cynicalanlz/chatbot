@@ -134,23 +134,31 @@ def get_user_google_auth(slid):
     return val
 
 
-async def handle(request):
-    token = request.query.get('token', "")
-    print('in handle', token)
-    try:
-        print('starting thread')
-        t = threading.Thread(target=slack_messaging, args=(token,))
-        t.daemon = True
-        t.start()
-    except:
-        return web.Response(text=str(sys.exc_info()[0]))
+class Handler:
 
-    return web.Response(text='ok')
+    def __init__(self, tokens):
+        self.running = tokens
+
+    @asyncio.coroutine
+    def handle_slack_team(self, request):
+        token = request.query.get('token', "")
+        self.running.append(token)
+        print(self.running)
+        if token not in self.running:
+            try:
+                t = threading.Thread(target=slack_messaging, args=(token,))
+                t.daemon = True
+                t.start()
+            except:
+                return web.Response(text=str(sys.exc_info()[0]))
+
+        return web.Response(text='ok')
 
 def main():
     tokens = get_tokens()
 
     i=0
+
         
     if len(tokens)  > 0 :
         loop = asyncio.get_event_loop()
@@ -159,7 +167,8 @@ def main():
             q = asyncio.ensure_future(loop.run_in_executor(executor, slack_messaging, token))
 
     app = web.Application()
-    app.router.add_get('/slack_api/v1/slack_team_process', handle)
+    handler = Handler(tokens)
+    app.router.add_get('/slack_api/v1/slack_team_process', Handler.handle_slack_team)
     web.run_app(app, host=config['SLACK_HOST'], port=int(config['SLACK_PORT']))
 
     loop.run_forever()

@@ -73,9 +73,9 @@ def post_install():
         client_secret=config['SLACK_CLIENT_SECRET'],
         code=auth_code
     )
-    print("slack auth")
-
+    
     tid = shortuuid.ShortUUID().random(length=22)
+    slack_tid = auth_response['team_id']
 
     print("getting")
 
@@ -85,7 +85,8 @@ def post_install():
         {
             'id' : tid 
         },
-        id=tid)
+        team_id=slack_tid
+    )
 
     print("end getting")
 
@@ -93,19 +94,13 @@ def post_install():
     if not auth_response.get('ok',False):
         return jsonify({'msg' : 'not ok'})
     
-
-    print('start setting')
-
     team.team_name = auth_response['team_name']
     team.team_id = auth_response['team_id']
     team.access_token = auth_response['access_token']
     team.bot_token = auth_response['bot']['bot_access_token']
     team.bot_user_id = auth_response['bot']['bot_user_id']
 
-    print('end setting')
     db.session.commit()
-    print('start team process')
-    print(team.bot_token)
     slack_team_process(team.bot_token)
   
     return jsonify({'msg' : 'ok'})
@@ -169,10 +164,8 @@ def register_google():
 @api.route(v+'get_tokens')
 def get_tokens():
 
-    # if request.remote_addr != '':
-    #     return jsonify({})
-
     tokens = [x[0] for x in db.session.query(SlackTeam.bot_token).distinct()]
+
     response = {
         'tokens' : tokens
     }
