@@ -20,7 +20,6 @@ cd to project folder
 pip-compile backend/requirements/shared.in --output-file backend/requirements/shared.txt 
 pip-compile backend/requirements/dev.in --output-file backend/requirements/dev.txt
 ```
-``
 
 # Install docker
 ```
