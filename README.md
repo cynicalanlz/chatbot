@@ -39,30 +39,7 @@ cd backend
 supervisord -c ../supervisord_local.conf   
 ```
 
-## DB reset
 
-
-```
-sudo docker stop $(sudo docker ps -aq)
-psql \
-   --host=tapdone.cznk1sm7ddt1.us-west-2.rds.amazonaws.com \
-   --port=5432 \
-   --username tapdone3_user \
-   --password \
-   --dbname=tapdone3_db
-```
-
-```
-DROP TABLE users;
-DROP SCHEMA public CASCADE;
-CREATE SCHEMA public;
-```
-
-if needed:
-```
-GRANT ALL ON SCHEMA public TO postgres;
-GRANT ALL ON SCHEMA public TO public;
-```
 
 ## DB initialization
 
@@ -78,6 +55,37 @@ python
    session_factory = sessionmaker(engine)
    session_factory.close_all() # <- don't forget to close
    Base.metadata.create_all(engine)
+```
+
+## DB reset
+
+
+```
+sudo docker stop $(sudo docker ps -aq)
+psql \
+   --host=tapdone.cznk1sm7ddt1.us-west-2.rds.amazonaws.com \
+   --port=5432 \
+   --username tapdone3_user \
+   --password \
+   --dbname=tapdone3_db
+
+```
+
+```
+DELETE from users;
+DELETE from slack_teams;
+```
+
+```
+DROP TABLE users;
+DROP SCHEMA public CASCADE;
+CREATE SCHEMA public;
+```
+
+if needed:
+```
+GRANT ALL ON SCHEMA public TO postgres;
+GRANT ALL ON SCHEMA public TO public;
 ```
 
 ## DB reset user info
