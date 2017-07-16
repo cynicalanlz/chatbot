@@ -2,7 +2,10 @@ import json
 import datetime, pytz
 
 def get_ai_response(ai, slid, msg):
-
+    """
+    Gets api ai response text based on message
+    extracts events time, date and response to user.
+    """
     request = ai.text_request()
     request.session_id = slid
     request.query = msg

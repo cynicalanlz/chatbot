@@ -16,6 +16,9 @@ import pytz
 config = os.environ
 
 def get_service(creds):
+    """
+    Authorizes google calendar
+    """
     http = httplib2.Http()
     http = creds.authorize(http)
     service = discovery.build('calendar', 'v3', http=http)
@@ -23,6 +26,9 @@ def get_service(creds):
 
 
 def get_events(service):
+    """
+    Gets all upcoming events from google calendar for checking overlaps
+    """
     now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
     eventsResult = service.events().list(
         calendarId='primary', timeMin=now, maxResults=2500, singleEvents=True,
@@ -47,6 +53,9 @@ def get_events(service):
     return rsp
 
 def get_primary_calendar(service):
+    """
+    Gets user primary calendar id for detecting settings
+    """
     calendar_list = service.calendarList().list().execute()
     
     primary_id = False
@@ -63,6 +72,9 @@ def has_overlap(A_start, A_end, B_start, B_end):
     return latest_start <= earliest_end
 
 def create_event(google_auth, event_text, event_start_new, event_end_new):
+    """
+    Checks for overlaps and creates the event in google calendar
+    """
     auth = json.loads(google_auth)    
     creds = Credentials.new_from_json(auth)
     service = get_service(creds)
