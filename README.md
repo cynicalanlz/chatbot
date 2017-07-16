@@ -33,8 +33,6 @@ sudo docker rm -f /tapdone
 sudo ./bin/run.sh
 ```
 ## or launch from supervisord
-
-
 # Compile supervisord config
 ```
 cd to project folder
@@ -43,14 +41,12 @@ python convert_config.py
 cat tapdone3_supervisord.txt 
 copy paste to evironment parameter in supervisord config
 ```
-
 ```
 **adapt** paths in supervisord_local.conf
 cd to project folder
 cd backend
 supervisord -c ../supervisord_local.conf   
 ```
-
 ## DB initialization
 
 ```
@@ -150,8 +146,57 @@ register_slack - сюда приходит авторизационные дан
 register_cb - регистрирует гугл пользователя
 get_tokens - получает slack токены
 get_user_google_auth - получает объект с авторизационными данными пользователя
+
 ```
 
+## App files
+```
+ /home/usr/dev/tapdone3/:
+total 40
+  -  backend
+	  	manager.py - db initialization commands will be launched from here
+		README.md - readme
+		requirements - for pip
+		service - main code folder
+			api.py - Flask api urls definitions
+			api_test.py
+			app.py - Flask app initialization
+			base.py - Database base class for Flask projects models
+			config.py - maps config from constants to it's names in library functions
+			__init__.py
+			__pycache__
+			shared - Flask db for apps
+			slack.py - aiohttp microservice, gets tokens spawns threads with chatbot
+			templates - front-ends templates are stored here because frontend folder is blocked for write
+			user - SlackTeam and User models for flask apps
+			utils 
+				ai.py - functions for api ai
+				calendar.py - functions for Google calendar
+				__init__.py
+				lib.py - misc functions (db get_and_create)
+				__pycache__
+  -  bin - scripts
+		build.sh - build docker container
+		cleanup.sh - remove temporary files
+		run.sh - start docker container
+		run-tapdone.sh - run in supervisord on amazon
+		uploadconfig.sh - amazon configs
+  -  config
+		client_secrets.json - secrets for Google calendar app authorization
+		convert_config.py - converting tapdone3.txt to taptodone3_supervisord.txt
+		Dockerfile
+		gunicorn.conf 
+		nginx.conf
+		supervisord.conf
+		tapdone3_not_server.txt - config for amazon deploy, not used as environment variables
+		tapdone3_supervisord.txt - environment variable value for supervisord.conf
+		tapdone3.txt - configs which are used as environment variables  
+  -  frontend - folder for frontend which is blocked for write
+  -  README.md
+  -  supervisord_local.conf - config template for launching supervisord locally for testings
+  -  venv - virtual environment folder  
+  -  version.json
+```
 ## Useful commands
 
 ```
