@@ -151,8 +151,6 @@ get_user_google_auth - получает объект с авторизацион
 
 ## App files
 ```
- /home/usr/dev/tapdone3/:
-total 40
   -  backend
 	  	manager.py - db initialization commands will be launched from here
 		README.md - readme
