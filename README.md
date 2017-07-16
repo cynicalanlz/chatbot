@@ -33,7 +33,7 @@ sudo docker rm -f /tapdone
 sudo ./bin/run.sh
 ```
 ## or launch from supervisord
-# Compile supervisord config
+### Compile supervisord config
 ```
 cd to project folder
 cd config
