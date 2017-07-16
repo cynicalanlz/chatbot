@@ -33,12 +33,10 @@ api = Blueprint('api', __name__)
 
 v = '/v1/'
 
-def events_resp(creds, usr):
+def registered_user_page(creds, usr):
     """
     Lists authorized user events
     """
-    service = get_service(creds)
-    events = get_events(service)
     return make_response(
         render_template(
             'registered.html',
@@ -73,7 +71,7 @@ def post_install():
     )
     
     tid = shortuuid.ShortUUID().random(length=22)
-    slack_tid = auth_response.get('team_id', '0')
+    slack_tid = auth_response.get('team_id', '')
 
     team, created = get_or_create(
         db.session, 
@@ -133,7 +131,7 @@ def register_google():
     if usr.google_auth:
         creds = Credentials.new_from_json(json.loads(usr.google_auth))
         if creds and not creds.invalid:
-            resp = events_resp(creds, usr)
+            resp = registered_user_page(creds, usr)
             return resp    
  
     flow = OAuth2WebServerFlow(**google_config)    
@@ -150,7 +148,7 @@ def register_google():
     usr.google_auth = json.dumps(creds.to_json())
     db.session.commit()
 
-    resp = events_resp(creds, usr)
+    resp = registered_user_page(creds, usr)
 
     return resp
 
@@ -219,8 +217,3 @@ def health():
     }
 
     return jsonify(response), 200
-
-
-@api.route("/spec")
-def spec():
-    return jsonify(swagger(app))

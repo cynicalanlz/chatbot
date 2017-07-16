@@ -38,6 +38,18 @@ def message(sc, ch, txt, thread):
     )
 
 def get_datetimes(event_date, event_start_time ,event_end_time):
+    """
+    Datetime conversion utility
+    converts from date and start and end time
+
+    @@params
+    ----------
+    event_date : string                 
+    event_start_time : string
+    event_end_time : string
+
+
+    """
 
     if event_date and event_start_time and event_end_time:
         event_start_time = "%sT%s" % (event_date, event_start_time)
@@ -56,6 +68,18 @@ def get_datetimes(event_date, event_start_time ,event_end_time):
     return event_start_time, event_end_time
 
 def slack_messaging(token):
+    """
+    Main slack messaging process. 
+
+    Could be parralel if tokens unique
+
+    @@params
+    ----------
+    x : string
+        token for slack team
+
+
+    """
     sc = SlackClient(token)    
     if not sc.rtm_connect():
         print("""\
@@ -114,12 +138,25 @@ def slack_messaging(token):
             message(**resp)
 
 def get_tokens():
+    """
+    Gets tokens via api
+
+    """
     h = httplib2.Http(".cache")
     (resp_headers, content) = h.request(config['FLASK_PROTOCOL']+"://"+config['FLASK_HOST']+"/api/v1/get_tokens", "GET")
     tokens = [ x for x in  json.loads(content)['tokens'] if x is not None ]
     return set(tokens)
 
 def get_user_google_auth(slid):
+    """
+    Gets user's calendar authentication
+    
+    @@params
+    ----------
+    slid : string
+           slack team id
+
+    """
     h = httplib2.Http(".cache")
     format_string = config['FLASK_PROTOCOL']+"://"+config['FLASK_HOST']+"/api/v1/get_user_google_auth?slid=%s"
     url = format_string % slid 
@@ -135,12 +172,18 @@ def get_user_google_auth(slid):
 
 
 class Handler:
-
+    """
+    Handls thread spawn requests.
+    Keeps track on not unique tokens.
+    """
     def __init__(self, tokens):
         self.running = tokens
 
     @asyncio.coroutine
-    def handle_slack_team(self, request):        
+    def handle_slack_team(self, request):
+        """
+        Async handler couroutine that spawns threads
+        """
         token = request.query.get('token', "")
         self.running.add(token)
         if token not in self.running:
@@ -154,17 +197,17 @@ class Handler:
         return web.Response(text='ok')
 
 def main():
+    # getting tokens via api
     tokens = get_tokens()
 
-    i=0
-
-        
+    # spawning initial threads
     if len(tokens)  > 0 :
         loop = asyncio.get_event_loop()
         executor = ThreadPoolExecutor(len(tokens))
         for token in tokens:
             q = asyncio.ensure_future(loop.run_in_executor(executor, slack_messaging, token))
 
+    # starting thread spawning application
     app = web.Application()
     handler = Handler(tokens)
     app.router.add_get('/slack_api/v1/slack_team_process', handler.handle_slack_team)
