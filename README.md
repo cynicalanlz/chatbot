@@ -28,6 +28,7 @@ https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-o
 
 ## Launch in container
 ```
+sudo docker start
 sudo ./bin/build.sh 
 sudo docker rm -f /tapdone
 sudo ./bin/run.sh
