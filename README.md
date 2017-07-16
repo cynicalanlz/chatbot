@@ -41,6 +41,7 @@ python convert_config.py
 cat tapdone3_supervisord.txt 
 copy paste to evironment parameter in supervisord config
 ```
+### launch supervisord locally
 ```
 **adapt** paths in supervisord_local.conf
 cd to project folder
