@@ -1,5 +1,5 @@
-with open("tapdone3.txt", 'r') as f:
-	with open("tapdone3_supervisord.txt", 'w+') as o:
+with open("../config/tapdone3.txt", 'r') as f:
+	with open("../config/tapdone3_supervisord.txt", 'w+') as o:
 		parts = []
 		for line in f.readlines():
 			l = line.strip("\n").split("=")
