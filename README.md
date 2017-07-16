@@ -28,12 +28,13 @@ https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-o
 
 ## Launch in container
 ```
+sudo docker start
 sudo ./bin/build.sh 
 sudo docker rm -f /tapdone
 sudo ./bin/run.sh
 ```
 ## or launch from supervisord
-# Compile supervisord config
+### Compile supervisord config
 ```
 cd to project folder
 cd config
@@ -41,6 +42,7 @@ python convert_config.py
 cat tapdone3_supervisord.txt 
 copy paste to evironment parameter in supervisord config
 ```
+### launch supervisord locally
 ```
 **adapt** paths in supervisord_local.conf
 cd to project folder
@@ -124,6 +126,8 @@ sudo docker exec -i -t $(sudo docker ps -q) /bin/bash
 ## Deploy
 
 ```
+aws configure
+*** obtain vars from config/tapdone3_not_server.txt ***
 aws ecr get-login
 ‘’remove -e none from command and execute’’
 sudo ./bin/build.sh && sudo docker tag opagrp/tapdone:latest 424467247636.dkr.ecr.us-west-2.amazonaws.com/tapdone4:latest &&  sudo docker push 424467247636.dkr.ecr.us-west-2.amazonaws.com/tapdone4:latest
