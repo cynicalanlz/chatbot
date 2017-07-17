@@ -90,27 +90,20 @@ def create_event(google_auth, event_text, event_start_new, event_end_new):
     Возвращает полученный объект события и текст, если есть пересечения.
 
     """
-    logging.info('in google auth')
     auth = json.loads(google_auth)
-    logging.info('cal1')    
-    logging.info(auth)
     creds = Credentials.new_from_json(auth)
-    if creds and not creds.invalid:
-        service = get_service(creds)
-    else:
-        logging.info("incorrect credentials")
+    
+    
+    service = get_service(creds)
 
-    logging.info('cal3')    
+
     events = get_events(service)        
-    logging.info('cal4')    
     primary_calendar = get_primary_calendar(service)
-    logging.info('cal5')    
     tz = service.settings().get(setting='timezone').execute()
     if tz:
         tz = tz['value']
     else:
         tz = 'America/Los_Angeles'
-    logging.info('cal6')    
     
 
     timezone = pytz.timezone(tz)
@@ -119,38 +112,26 @@ def create_event(google_auth, event_text, event_start_new, event_end_new):
 
     parse_settings = {'RETURN_AS_TIMEZONE_AWARE': True}
     overlap_texts_format_string = '- %s, which is between %s - %s;\n'
-    logging.info('cal7') 
 
     res = ''   
 
     if events and len(events) > 0:     
-        logging.info('cal8')    
         overlap_texts = []   
         for start, end, summary in events:      
             if start and end:
                 event_start = parse(start, settings=parse_settings)
-                logging.info('cal10')    
                 event_end = parse(start, settings=parse_settings)
-                logging.info('cal11')    
                 if event_start == event_start_new and event_end == event_end_new:
-                    logging.info('cal12')    
                     overlap_texts.append( overlap_texts_format_string % (summary, event_start, event_end))
-                    logging.info('cal13')    
 
-                logging.info('cal14')   
                 if has_overlap(event_start, event_end, event_start_new, event_end_new):
-                    logging.info('cal15')   
                     overlap_texts.append( overlap_texts_format_string % (summary, event_start, event_end))
-                    logging.info('cal16')   
 
-        logging.info(overlap_texts)
 
         if len(overlap_texts) > 0:
-            logging.info('len > 0')
             ovarlaps_joined = ''.join(overlap_texts)                
             res+=  'Overlaps with: \n {texts}.'.format(texts=ovarlaps_joined)
 
-    logging.info('cal8')    
 
     event = {
       'summary': event_text,
@@ -172,11 +153,9 @@ def create_event(google_auth, event_text, event_start_new, event_end_new):
         ],
       },
     }
-    logging.info('cal9')    
 
     event = service.events().insert(calendarId=primary_calendar, body=event).execute()
     
-    logging.info('cal10')    
 
     return event, res
     

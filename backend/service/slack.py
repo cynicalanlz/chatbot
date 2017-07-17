@@ -160,26 +160,17 @@ def slack_messaging(token):
             msg = item.get('text', '')
             msg_type, event_text, event_start_time, event_end_time, event_date, speech = get_ai_response(slid, msg)
 
-            logging.info('c1')
-            logging.info(msg_type)
-            logging.info('Speech: %s' % speech)
 
             if not speech: continue
 
-            logging.info('c2')
 
             resp['txt'] = speech
 
-            logging.info('c3')
 
             if msg_type == 'Create task':
-                logging.info('c4')
                 event_start_time, event_end_time = get_datetimes(event_date, event_start_time, event_end_time)
-                logging.info('c5')
                 e, e_resp = create_event(auth, event_text, event_start_time, event_end_time)            
-                logging.info('c6')
                 resp['txt'] += "\nEvent link: {link} .\n".format(link=e['htmlLink']) + e_resp
-                logging.info('c7')
                 
 
             message(**resp)
