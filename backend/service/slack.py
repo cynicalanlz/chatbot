@@ -18,6 +18,27 @@ from aiohttp import web
 from utils.lib import get_or_create
 from utils.ai import get_ai_response
 
+import logging
+
+FORMAT = '%(asctime)-15s%(message)s'
+logging.basicConfig(filename='slack.log',level=logging.DEBUG, format=FORMAT)
+
+logger = logging.getLogger(__name__)
+handler = logging.StreamHandler(stream=sys.stdout)
+logger.addHandler(handler)
+logging.getLogger('googleapiclient.discovery').setLevel(logging.CRITICAL)
+
+
+def handle_exception(exc_type, exc_value, exc_traceback):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+
+    logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+
+sys.excepthook = handle_exception
+
+
 try:
     import apiai
 except ImportError:
@@ -112,12 +133,13 @@ def slack_messaging(token):
     while True:
         buf = sc.rtm_read()
         if buf == []: continue
-        for item in buf:   
+        for item in buf:           
+
             if item.get('type', '') != 'message': continue
             subtype = item.get('subtype', '')
             team = item.get('team', '') or item.get('source_team', '')
             if subtype == 'bot_message' or not team: continue
-            slid = item.get('user', 1)
+            slid = item.get('user', 1)            
                        
             resp =  {
                 'sc' : sc, 
@@ -126,7 +148,8 @@ def slack_messaging(token):
                 'thread': item['ts']
             } 
 
-            auth = get_user_google_auth(slid)   
+
+            auth = get_user_google_auth(slid)           
 
             if not auth:
                 resp['txt'] = """\
@@ -145,13 +168,24 @@ def slack_messaging(token):
             msg = item.get('text', '')
             msg_type, event_text, event_start_time, event_end_time, event_date, speech = get_ai_response(ai, slid, msg)
 
+            logging.info('c1')
+            logging.info(msg_type)
+            logging.info('Speech: %s' % speech)
+
             if not speech: continue
+
+            logging.info('c2')
 
             resp['txt'] = speech
 
+            logging.info('c3')
+
             if msg_type == 'Create task':
+                print('c4')
                 event_start_time, event_end_time = get_datetimes(event_date, event_start_time, event_end_time)
+                print('c5')
                 e, e_resp = create_event(auth, event_text, event_start_time, event_end_time)            
+
                 resp['txt'] += "\nEvent link: {link} .\n".format(link=e['htmlLink']) + e_resp
 
             message(**resp)

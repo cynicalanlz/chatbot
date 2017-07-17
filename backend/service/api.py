@@ -32,9 +32,18 @@ from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
 
 api = Blueprint('api', __name__)
-
-
 v = '/v1/'
+
+
+import logging, sys
+logging.basicConfig(filename='api.log',level=logging.DEBUG)
+
+logger = logging.getLogger(__name__)
+handler = logging.StreamHandler(stream=sys.stdout)
+logger.addHandler(handler)
+
+
+
 
 def registered_user_page(creds, usr):
     """

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+#coding=utf-8
 import os
 import httplib2
 import datetime
@@ -14,6 +16,12 @@ from dateparser import parse
 import pytz
 
 config = os.environ
+
+import logging, sys
+
+logger = logging.getLogger(__name__)
+handler = logging.StreamHandler(stream=sys.stdout)
+logger.addHandler(handler)
 
 def get_service(creds):
     """
