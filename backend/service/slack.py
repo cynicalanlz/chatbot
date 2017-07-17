@@ -39,24 +39,8 @@ def handle_exception(exc_type, exc_value, exc_traceback):
 sys.excepthook = handle_exception
 
 
-try:
-    import apiai
-except ImportError:
-    sys.path.append(
-        os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir)
-    )
-    import apiai
-
 config = os.environ
 
-def message(sc, ch, txt, thread):
-    return sc.api_call(
-      "chat.postMessage",
-      channel=ch,
-      text=txt,
-      as_user=False,
-      username="tapdone bot"
-    )
 
 def get_datetimes(event_date, event_start_time ,event_end_time):
     """
@@ -97,6 +81,15 @@ def get_datetimes(event_date, event_start_time ,event_end_time):
 
     return event_start_time, event_end_time
 
+def message(sc, ch, txt, thread):
+    return sc.api_call(
+      "chat.postMessage",
+      channel=ch,
+      text=txt,
+      as_user=False,
+      username="tapdone bot"
+    )
+
 def slack_messaging(token):
     """
     Main slack messaging process. 
@@ -127,7 +120,6 @@ def slack_messaging(token):
         """)
         return
 
-    ai = apiai.ApiAI(config['APIAI_CLIENT_ACCESS_TOKEN'])
     users = {}
 
     while True:
@@ -166,7 +158,7 @@ def slack_messaging(token):
                 continue    
             
             msg = item.get('text', '')
-            msg_type, event_text, event_start_time, event_end_time, event_date, speech = get_ai_response(ai, slid, msg)
+            msg_type, event_text, event_start_time, event_end_time, event_date, speech = get_ai_response(slid, msg)
 
             logging.info('c1')
             logging.info(msg_type)
@@ -181,12 +173,14 @@ def slack_messaging(token):
             logging.info('c3')
 
             if msg_type == 'Create task':
-                print('c4')
+                logging.info('c4')
                 event_start_time, event_end_time = get_datetimes(event_date, event_start_time, event_end_time)
-                print('c5')
+                logging.info('c5')
                 e, e_resp = create_event(auth, event_text, event_start_time, event_end_time)            
-
+                logging.info('c6')
                 resp['txt'] += "\nEvent link: {link} .\n".format(link=e['htmlLink']) + e_resp
+                logging.info('c7')
+                
 
             message(**resp)
 

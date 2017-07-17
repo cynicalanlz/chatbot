@@ -182,7 +182,7 @@ def register_google():
 
     """
 
-    code = request.args('code')
+    code = request.args.get('code')
     tid = request.args.get('tid')
     slid = request.args.get('slid') or request.args.get('state')
     uid = request.cookies.get(tid) or str(shortuuid.ShortUUID().random(length=22))

@@ -1,12 +1,24 @@
 #coding=utf-8
 import json
 import datetime, pytz
+import os
 
-def get_ai_response(ai, slid, msg):
+try:
+    import apiai
+except ImportError:
+    sys.path.append(
+        os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir)
+    )
+    import apiai
+
+config = os.environ
+
+def get_ai_response(slid, msg):
     """
     Gets api ai response text based on message
     extracts events time, date and response to user.
     """
+    ai = apiai.ApiAI(config['APIAI_CLIENT_ACCESS_TOKEN'])
     request = ai.text_request()
     request.session_id = slid
     request.query = msg
