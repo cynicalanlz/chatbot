@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+#coding=utf-8
 import os, sys
 import yajl as json
 import datetime
@@ -42,11 +42,20 @@ def get_datetimes(event_date, event_start_time ,event_end_time):
     Datetime conversion utility
     converts from date and start and end time
 
+    Конвертирует даты, времени начала и время конца 
+    в datetime начала и конца. Если время не задано ставит весь день.
+    Если не задано ничего, то ставит от +15 до +30 минут от текущего времени.
+
     @@params
     ----------
     event_date : string                 
     event_start_time : string
     event_end_time : string
+
+    @@returns
+    ----------
+    event_start_time : datetime
+    event_end_time : datetimte
 
 
     """
@@ -73,10 +82,20 @@ def slack_messaging(token):
 
     Could be parralel if tokens unique
 
+
+    Процесс, который соединяется по вебсокету со серверами слека,
+    получает поток массивов, внутри которых json объекты соообщений
+    и события команды слека.
+
+    Если получает json формата "сообщение" и пользователь авторизован, 
+    то отправляет данные в api.ai, получает ответ и отправляет пользователю.
+    Если необходимо создает задачу.
+
+
     @@params
     ----------
-    x : string
-        token for slack team
+    token : string
+            token for slack team
 
 
     """
@@ -139,7 +158,7 @@ def slack_messaging(token):
 
 def get_tokens():
     """
-    Gets tokens via api
+    Gets tokens via api    
 
     """
     h = httplib2.Http(".cache")
@@ -175,6 +194,12 @@ class Handler:
     """
     Handls thread spawn requests.
     Keeps track on not unique tokens.
+
+    Асинхронный хендлер, который создает потоки slack_messaging, к
+    огда приходит http запрос на урл
+    /slack_api/v1/slack_team_process
+
+
     """
     def __init__(self, tokens):
         self.running = tokens
@@ -201,6 +226,7 @@ def main():
     tokens = get_tokens()
 
     # spawning initial threads
+    # потоки по slack_messaging полученным из токе
     if len(tokens)  > 0 :
         loop = asyncio.get_event_loop()
         executor = ThreadPoolExecutor(len(tokens))
@@ -208,6 +234,8 @@ def main():
             q = asyncio.ensure_future(loop.run_in_executor(executor, slack_messaging, token))
 
     # starting thread spawning application
+    # тут запускается веб-приложение на aiohttp, которое обрабатывает запросы
+    # на открытие slack_messaging
     app = web.Application()
     handler = Handler(tokens)
     app.router.add_get('/slack_api/v1/slack_team_process', handler.handle_slack_team)

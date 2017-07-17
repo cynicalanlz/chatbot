@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+#coding=utf-8
+
 from __future__ import print_function
 import httplib2
 import os
@@ -35,7 +38,7 @@ v = '/v1/'
 
 def registered_user_page(creds, usr):
     """
-    Lists authorized user events
+    Страница зарегистрированного пользователя гугл    
     """
     return make_response(
         render_template(
@@ -54,13 +57,15 @@ def register_slack_team():
     event_start_time : string
     event_end_time : string
 
-
     """
     return render_template('register_slack.html')
 
 def slack_team_process(token):
     """
-    Makes api call to spawn slack team thread to slack ms
+    Makes api call to spawn slack team thread to slack
+
+    Делает запрос по api, чтобы создать процесс по обработке
+    потока событий слек команды
 
     @@params
     ----------
@@ -73,10 +78,16 @@ def slack_team_process(token):
     return resp_headers
 
 @api.route(v+"register_slack", methods=["GET", "POST"])
-def post_install():
+def slack_post_install():
     """
     Gets a SlackTeam by id, obtained from slack auth api call
     based on token from request params
+
+    Получает авторизационный код, который передает слек после авторизации команды 
+    на его сайте.
+    С помощью этого кода и ключей, которые закреплены за приложением в настройках api.slack.com
+    и хранятся в конфиге, получает json объект авторизационных данных, из которого
+    достает айди слек команды и авторзационные данные и пишет в объект с айди слек команды в бд.
 
     @@params
     ----------
@@ -104,14 +115,13 @@ def post_install():
         code=auth_code
     )
     
-    tid = shortuuid.ShortUUID().random(length=22)
     slack_tid = auth_response.get('team_id', '')
 
     team, created = get_or_create(
         db.session, 
         SlackTeam,
         {
-            'id' : tid 
+            'id' : shortuuid.ShortUUID().random(length=22) 
         },
         team_id=slack_tid
     )
@@ -137,6 +147,15 @@ def register_google():
     If user authorization not found via user slack id  in db
     then redirects user to google, then the OAuth2 flow is completed 
     to obtain the new credentials.
+
+    Работает в 2-х комбинациях параметров:
+    
+    tid, slid - получает из слека айди пользователя и айди команды,
+    если по этому айди не находится объект пользователя, то создает,
+    ставит куку и редиректит дальше, по сформированному url авторизации в гугле, 
+    в который передает параметр state=slid, который ему потом возвращается от гугла
+    code, slid - когда возвращается от гугла
+
 
     @@params
     ----------
@@ -202,7 +221,7 @@ def register_google():
 @api.route(v+'get_tokens')
 def get_tokens():
     """
-    Returns slack bot tokens for all teams from db.
+    Returns slack bot tokens for all teams from db.    
 
     @@returns
     tokens: : array in json
@@ -222,6 +241,12 @@ def get_user_google_auth():
     """
     Returns google authentication codde, refreshes it 
     if needed.
+
+    Получает слек айди пользователья slid, делает выборку из бд по slid
+    если нет ответа возвращает ошибку, из бд получает авторизационные данные,
+    проверяет актуальность авторизационных данных, если нужно, то обновляет их
+    и пишет в бд.
+    Полученные проверенные данные отправляет обратно в json.
 
     @@params
     ----------

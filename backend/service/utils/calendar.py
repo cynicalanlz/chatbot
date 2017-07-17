@@ -74,6 +74,17 @@ def has_overlap(A_start, A_end, B_start, B_end):
 def create_event(google_auth, event_text, event_start_new, event_end_new):
     """
     Checks for overlaps and creates the event in google calendar
+
+    Получает текст события, datetime начала и конца события без таймзоны.
+
+    Авторизуется по авторизационным данным в гугл календаре, делает http запрос 
+    и получает до 2500 предостоящих событий. 
+
+    Получает таймзону из календаря, делает timezone-aware datetime из дат начала и конца события.
+    Если есть пересечения, то пишет в ответ что они есть.
+    
+    Возвращает полученный объект события и текст, если есть пересечения.
+
     """
     auth = json.loads(google_auth)    
     creds = Credentials.new_from_json(auth)
