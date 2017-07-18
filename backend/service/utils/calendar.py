@@ -23,9 +23,13 @@ def get_service(creds):
     """
     Authorizes google calendar
     """
+    logging.info('service1')
     http = httplib2.Http()
+    logging.info('service2')
     http = creds.authorize(http)
+    logging.info('service3')
     service = discovery.build('calendar', 'v3', http=http)
+    logging.info('service4')
     return service
 
 
@@ -39,20 +43,20 @@ def get_events(service):
         orderBy='startTime').execute()
     events = eventsResult.get('items', [])
 
-    if not events:
-        rsp = 'No upcoming events found.'        
-    else:
-        rsp = []
+    rsp = []
 
-        for event in events:
-            if 'start' in event:
-                start = event['start'].get('dateTime', event['start'].get('date')) or ''
-            if 'end' in event:                
-                end = event['end'].get('dateTime', event['end'].get('date')) or ''
-            if 'summary' in event:
-                summary = event['summary'] or ''
+    if not events or not len(events) > 0:
+        return rsp
+    
+    for event in events:
+        if 'start' in event:
+            start = event['start'].get('dateTime', event['start'].get('date')) or ''
+        if 'end' in event:                
+            end = event['end'].get('dateTime', event['end'].get('date')) or ''
+        if 'summary' in event:
+            summary = event['summary'] or ''
 
-            rsp.append((start, end, summary))
+        rsp.append((start, end, summary))
 
     return rsp
 
@@ -94,9 +98,14 @@ def create_event(google_auth, event_text, event_start_new, event_end_new):
     auth = json.loads(google_auth)
     logging.info('cal1')    
     logging.info(auth)
+    if not auth:
+        logging.info('auth is false')
     creds = Credentials.new_from_json(auth)
+    logging.info('cal2')    
     if creds and not creds.invalid:
+        logging.info('cal2.1')    
         service = get_service(creds)
+        logging.info('cal2.2')    
     else:
         logging.info("incorrect credentials")
 
@@ -118,29 +127,35 @@ def create_event(google_auth, event_text, event_start_new, event_end_new):
     event_end_new = timezone.localize(event_end_new)
 
     parse_settings = {'RETURN_AS_TIMEZONE_AWARE': True}
-    overlap_texts_format_string = '- %s, which is between %s - %s;\n'
+    overlap_texts_format_string = '- {}, which is between {} - {};\n'
     logging.info('cal7') 
 
     res = ''   
 
     if events and len(events) > 0:     
         logging.info('cal8')    
-        overlap_texts = []   
-        for start, end, summary in events:      
+        overlap_texts = []
+        logging.info('cal9')    
+
+        for start, end, summary in events:  
+            logging.info('cal9.1')        
             if start and end:
+                logging.info('cal9.2')        
                 event_start = parse(start, settings=parse_settings)
                 logging.info('cal10')    
                 event_end = parse(start, settings=parse_settings)
                 logging.info('cal11')    
                 if event_start == event_start_new and event_end == event_end_new:
                     logging.info('cal12')    
-                    overlap_texts.append( overlap_texts_format_string % (summary, event_start, event_end))
+                    overlap_text = overlap_texts_format_string.format(summary, event_start, event_end)
+                    overlap_texts.append(overlap_text)
                     logging.info('cal13')    
 
                 logging.info('cal14')   
                 if has_overlap(event_start, event_end, event_start_new, event_end_new):
                     logging.info('cal15')   
-                    overlap_texts.append( overlap_texts_format_string % (summary, event_start, event_end))
+                    overlap_text = overlap_texts_format_string.format(summary, event_start, event_end)
+                    overlap_texts.append(overlap_text)
                     logging.info('cal16')   
 
         logging.info(overlap_texts)
@@ -148,9 +163,9 @@ def create_event(google_auth, event_text, event_start_new, event_end_new):
         if len(overlap_texts) > 0:
             logging.info('len > 0')
             ovarlaps_joined = ''.join(overlap_texts)                
-            res+=  'Overlaps with: \n {texts}.'.format(texts=ovarlaps_joined)
+            res +=  'Overlaps with: \n {texts}.'.format(texts=ovarlaps_joined)
 
-    logging.info('cal8')    
+    logging.info('cal18')   
 
     event = {
       'summary': event_text,
@@ -172,11 +187,11 @@ def create_event(google_auth, event_text, event_start_new, event_end_new):
         ],
       },
     }
-    logging.info('cal9')    
+    logging.info('cal20')    
 
     event = service.events().insert(calendarId=primary_calendar, body=event).execute()
     
-    logging.info('cal10')    
+    logging.info('cal21')    
 
     return event, res
     

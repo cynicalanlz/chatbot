@@ -86,6 +86,7 @@ def slack_team_process(token):
     (resp_headers, content) = h.request(url, "GET")
     return resp_headers
 
+
 @api.route(v+"register_slack", methods=["GET", "POST"])
 def slack_post_install():
     """
@@ -299,18 +300,17 @@ def get_user_google_auth():
         }), 404                
 
     if credentials.access_token_expired:
-        h = httplib2.Http(".cache")
+        h = httplib2.Http()
         credentials.refresh(h)            
         usr.google_auth = json.dumps(credentials.to_json())
         db.session.commit()
                  
         return jsonify({
-            'google_auth' : credentials.to_json()                    
+            'google_auth' : json.dumps(credentials.to_json()                    )
         }), 200
 
-            
     return jsonify({
-        'google_auth' : auth
+        'google_auth' : json.dumps(credentials.to_json())
     }), 200
 
 
