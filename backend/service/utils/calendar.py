@@ -101,7 +101,7 @@ def create_event(google_auth, event_text, event_start_new, event_end_new):
         service = get_service(creds)
     else:
         return [], ''
-        
+
     events = get_events(service)        
     primary_calendar = get_primary_calendar(service)
     tz = service.settings().get(setting='timezone').execute()
@@ -112,7 +112,7 @@ def create_event(google_auth, event_text, event_start_new, event_end_new):
         tz = 'America/Los_Angeles'
     
 
-    timezone = pytz.timezone(tz)
+    timezone = pytz.timezone(tz) # @@TODO check if timezones match or actually exist
     event_start_new = timezone.localize(event_start_new)
     event_end_new = timezone.localize(event_end_new)
 
