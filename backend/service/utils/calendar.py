@@ -84,7 +84,51 @@ def datetime_to_rfc(dt):
     else:
         return "{}Z".format(dt.isoformat())
 
-def create_event(google_auth, event_text, event_start_new, event_end_new):
+
+def get_datetimes(event_date, event_start_time ,event_end_time):
+    """
+    Datetime conversion utility
+    converts from date and start and end time
+
+    Конвертирует даты, времени начала и время конца 
+    в datetime начала и конца. Если время не задано ставит весь день.
+    Если не задано ничего, то ставит от +15 до +30 минут от текущего времени.
+
+    @@params
+    ----------
+    event_date : string                 
+    event_start_time : string
+    event_end_time : string
+
+    @@returns
+    ----------
+    event_start_time : datetime
+    event_end_time : datetimte
+
+
+    """
+
+    time_format = "{}T{}"
+
+    logging.info(event_date, event_start_time ,event_end_time)
+    if event_date and event_start_time and event_end_time:
+        event_start_time = time_format.format(event_date, event_start_time)
+        event_end_time = time_format.format(event_date, event_end_time)
+        event_start_time = parse(event_start_time)
+        event_end_time = parse(event_end_time)
+    elif event_date:
+        event_start_time = time_format.format(event_date, "00:00")
+        event_end_time = time_format.format(event_date, "23:59")
+        event_start_time = parse(event_start_time)
+        event_end_time = parse(event_end_time)
+    else:
+        event_start_time = False
+        event_end_time = False
+
+    return event_start_time, event_end_time
+
+
+def create_event(google_auth, event_text, event_date, event_start_time, event_end_time):
     """
     Checks for overlaps and creates the event in google calendar
 
@@ -100,8 +144,6 @@ def create_event(google_auth, event_text, event_start_new, event_end_new):
 
     """
     auth = json.loads(google_auth)
-    
-
     creds = Credentials.new_from_json(auth)
     service = get_service(creds)
 
@@ -114,6 +156,7 @@ def create_event(google_auth, event_text, event_start_new, event_end_new):
     tz = service.settings().get(setting='timezone').execute()
     default_length = service.settings().get(setting='defaultEventLength').execute()
 
+
     if default_length:
         default_length = int(default_length['value'])
         
@@ -125,14 +168,18 @@ def create_event(google_auth, event_text, event_start_new, event_end_new):
     logging.info(tz)    
     timezone = pytz.timezone(tz) # @@TODO check if timezones match or actually exist
 
+    event_start_new, event_end_new = get_datetimes(event_date, event_start_time, event_end_time)
+
     logging.info(not event_start_new or not event_end_new)
 
     if not event_start_new or not event_end_new:
         event_start_new = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=15)
         event_end_new = event_start_new + datetime.timedelta(minutes=default_length)
-
-    event_start_new = event_start_new.astimezone(timezone)
-    event_end_new = event_end_new.astimezone(timezone)
+        event_start_new = event_start_new.astimezone(timezone)
+        event_end_new = event_end_new.astimezone(timezone)
+    else:
+        event_start_new = timezone.localize(event_start_new)
+        event_end_new = timezone.localize(event_end_new)
 
     parse_settings = {'RETURN_AS_TIMEZONE_AWARE': True}
 

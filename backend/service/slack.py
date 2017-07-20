@@ -42,47 +42,6 @@ sys.excepthook = handle_exception
 config = os.environ
 
 
-def get_datetimes(event_date, event_start_time ,event_end_time):
-    """
-    Datetime conversion utility
-    converts from date and start and end time
-
-    Конвертирует даты, времени начала и время конца 
-    в datetime начала и конца. Если время не задано ставит весь день.
-    Если не задано ничего, то ставит от +15 до +30 минут от текущего времени.
-
-    @@params
-    ----------
-    event_date : string                 
-    event_start_time : string
-    event_end_time : string
-
-    @@returns
-    ----------
-    event_start_time : datetime
-    event_end_time : datetimte
-
-
-    """
-
-    time_format = "{}T{}Z"
-
-    if event_date and event_start_time and event_end_time:
-        event_start_time = time_format.format(event_date, event_start_time)
-        event_end_time = time_format.format(event_date, event_end_time)
-        event_start_time = parse(event_start_time)
-        event_end_time = parse(event_end_time)
-    elif event_date:
-        event_start_time = time_format.format(event_date, "00:00")
-        event_end_time = time_format.format(event_date, "23:59")
-        event_start_time = parse(event_start_time)
-        event_end_time = parse(event_end_time)
-    else:
-        event_start_time = False
-        event_end_time = False
-
-    return event_start_time, event_end_time
-
 def message(sc, ch, txt, thread):
     return sc.api_call(
       "chat.postMessage",
@@ -157,8 +116,14 @@ def slack_messaging(token):
             resp['txt'] = speech
 
             if msg_type == 'Create task':
-                event_start_time, event_end_time = get_datetimes(event_date, event_start_time, event_end_time)
-                e, e_resp = create_event(auth, event_text, event_start_time, event_end_time)            
+                
+                e, e_resp = create_event(
+                    auth, 
+                    event_text,
+                    event_date,
+                    event_start_time, 
+                    event_end_time
+                )            
                 resp['txt'] += "\nEvent link: {link} .\n".format(link=e['htmlLink']) + e_resp
                 
             message(**resp)
