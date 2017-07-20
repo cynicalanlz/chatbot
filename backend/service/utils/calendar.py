@@ -145,7 +145,7 @@ def create_event(google_auth, event_text, event_start_new, event_end_new):
         for start, end, summary in events:  
             if start and end:
                 event_start = parse(start, settings=parse_settings)
-                event_end = parse(start, settings=parse_settings)
+                event_end = parse(end, settings=parse_settings)
                 if event_start == event_start_new and event_end == event_end_new:
                     overlap_texts.append(overlap_texts_format_string.format(summary, event_start, event_end))
 
