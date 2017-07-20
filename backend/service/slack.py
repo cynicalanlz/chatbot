@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #coding=utf-8
 import os, sys
-import yajl as json
+import json
 import datetime
 import shortuuid
 import asyncio
@@ -19,6 +19,9 @@ from utils.lib import get_or_create
 from utils.ai import get_ai_response
 
 import logging
+
+import codecs
+
 
 FORMAT = '%(asctime)-15s%(message)s'
 logging.basicConfig(filename='slack.log',level=logging.DEBUG, format=FORMAT)
@@ -128,8 +131,9 @@ def slack_messaging(token):
         for item in buf:           
 
             if item.get('type', '') != 'message': continue
-            subtype = item.get('subtype', '')
+            
             team = item.get('team', '') or item.get('source_team', '')
+            subtype = item.get('subtype', '')
             if subtype == 'bot_message' or not team: continue
             slid = item.get('user', 1)            
                        
@@ -175,15 +179,32 @@ def slack_messaging(token):
 
             message(**resp)
 
-def get_tokens():
-    """
-    Gets tokens via api    
+def get_url_json(url):
 
-    """
+    hostname = ''.join([
+        config['FLASK_PROTOCOL'],
+        "://",
+        config['FLASK_HOST']
+    ])
+    
+    url = ''.join([
+        hostname,
+        url,
+        ])
+
     h = httplib2.Http(".cache")
-    (resp_headers, content) = h.request(config['FLASK_PROTOCOL']+"://"+config['FLASK_HOST']+"/api/v1/get_tokens", "GET")
-    tokens = [ x for x in  json.loads(content)['tokens'] if x is not None ]
-    return set(tokens)
+
+    (resp_headers, content) = h.request(url, "GET")
+
+
+    if not content:
+        return False
+    
+    content = content.decode('utf-8')
+    jsn = json.loads(content)
+
+    return jsn
+    
 
 def get_user_google_auth(slid):
     """
@@ -195,18 +216,26 @@ def get_user_google_auth(slid):
            slack team id
 
     """
-    h = httplib2.Http(".cache")
-    format_string = config['FLASK_PROTOCOL']+"://"+config['FLASK_HOST']+"/api/v1/get_user_google_auth?slid=%s"
+
+    format_string = "/api/v1/get_user_google_auth?slid=%s"
     url = format_string % slid 
-    (resp_headers, content) = h.request(url, "GET")
-    
-    if not content:
-        return False
-    
-    jsn = json.loads(content)    
+    jsn = get_url_json(url)
     val = jsn.get('google_auth', False)
 
     return val
+
+def get_tokens():
+    """
+    Gets tokens via api    
+
+    """
+
+    jsn = get_url_json("/api/v1/get_tokens")
+
+    if jsn:        
+        tokens = jsn['tokens']
+    
+    return set(tokens)
 
 
 class Handler:
@@ -214,8 +243,8 @@ class Handler:
     Handls thread spawn requests.
     Keeps track on not unique tokens.
 
-    Асинхронный хендлер, который создает потоки slack_messaging, к
-    огда приходит http запрос на урл
+    Асинхронный хендлер, который создает потоки slack_messaging, 
+    когда приходит http запрос на урл
     /slack_api/v1/slack_team_process
 
 
@@ -244,6 +273,8 @@ def main():
     # getting tokens via api
     tokens = get_tokens()
 
+    logging.info(tokens)
+
     # spawning initial threads
     # потоки по slack_messaging полученным из токе
     if len(tokens)  > 0 :
@@ -252,12 +283,16 @@ def main():
         for token in tokens:
             q = asyncio.ensure_future(loop.run_in_executor(executor, slack_messaging, token))
 
+    # slack_messaging("xoxb-210037203348-w2VEE9syr7JcMHV7gYxMI1Md")
+
     # starting thread spawning application
     # тут запускается веб-приложение на aiohttp, которое обрабатывает запросы
     # на открытие slack_messaging
     app = web.Application()
     handler = Handler(tokens)
     app.router.add_get('/slack_api/v1/slack_team_process', handler.handle_slack_team)
+    logger = logging.getLogger('aiohttp.access')
+    app.make_handler(access_log=logger)
     web.run_app(app, host=config['SLACK_HOST'], port=int(config['SLACK_PORT']))
 
     loop.run_forever()

@@ -39,20 +39,20 @@ def get_events(service):
         orderBy='startTime').execute()
     events = eventsResult.get('items', [])
 
-    if not events:
-        rsp = 'No upcoming events found.'        
-    else:
-        rsp = []
+    rsp = []
 
-        for event in events:
-            if 'start' in event:
-                start = event['start'].get('dateTime', event['start'].get('date')) or ''
-            if 'end' in event:                
-                end = event['end'].get('dateTime', event['end'].get('date')) or ''
-            if 'summary' in event:
-                summary = event['summary'] or ''
+    if not events or not len(events) > 0:
+        return rsp
+    
+    for event in events:
+        if 'start' in event:
+            start = event['start'].get('dateTime', event['start'].get('date')) or ''
+        if 'end' in event:                
+            end = event['end'].get('dateTime', event['end'].get('date')) or ''
+        if 'summary' in event:
+            summary = event['summary'] or ''
 
-            rsp.append((start, end, summary))
+        rsp.append((start, end, summary))
 
     return rsp
 
@@ -91,46 +91,59 @@ def create_event(google_auth, event_text, event_start_new, event_end_new):
 
     """
     auth = json.loads(google_auth)
+    
+
     creds = Credentials.new_from_json(auth)
-    
-    
     service = get_service(creds)
 
+    if not auth or not creds or creds.invalid:
+        return [], ''
 
-    events = get_events(service)        
+ 
+    
+    service = get_service(creds)
+    events = get_events(service)
     primary_calendar = get_primary_calendar(service)
     tz = service.settings().get(setting='timezone').execute()
+
     if tz:
         tz = tz['value']
     else:
         tz = 'America/Los_Angeles'
     
+    logging.info(tz)    
 
-    timezone = pytz.timezone(tz)
+    timezone = pytz.timezone(tz) # @@TODO check if timezones match or actually exist
     event_start_new = timezone.localize(event_start_new)
     event_end_new = timezone.localize(event_end_new)
 
     parse_settings = {'RETURN_AS_TIMEZONE_AWARE': True}
-    overlap_texts_format_string = '- %s, which is between %s - %s;\n'
+
+    overlap_texts_format_string = '- {}, which is between {} - {};\n'
+
 
     res = ''   
 
     if events and len(events) > 0:     
-        overlap_texts = []   
-        for start, end, summary in events:      
+        overlap_texts = []
+        for start, end, summary in events:  
             if start and end:
                 event_start = parse(start, settings=parse_settings)
                 event_end = parse(start, settings=parse_settings)
                 if event_start == event_start_new and event_end == event_end_new:
-                    overlap_texts.append( overlap_texts_format_string % (summary, event_start, event_end))
+                    overlap_texts.append(overlap_texts_format_string.format(summary, event_start, event_end))
 
                 if has_overlap(event_start, event_end, event_start_new, event_end_new):
-                    overlap_texts.append( overlap_texts_format_string % (summary, event_start, event_end))
+                    overlap_text = overlap_texts_format_string.format(summary, event_start, event_end)
+                    overlap_texts.append(overlap_text)
 
+                if has_overlap(event_start, event_end, event_start_new, event_end_new):
+                    overlap_text = overlap_texts_format_string.format(summary, event_start, event_end)
+                    overlap_texts.append(overlap_text)
 
         if len(overlap_texts) > 0:
             ovarlaps_joined = ''.join(overlap_texts)                
-            res+=  'Overlaps with: \n {texts}.'.format(texts=ovarlaps_joined)
+            res +=  'Overlaps with: \n {texts}.'.format(texts=ovarlaps_joined)
 
 
     event = {
