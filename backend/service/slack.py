@@ -286,13 +286,13 @@ def main():
 
     # spawning initial threads
     # потоки по slack_messaging полученным из токе
-    if len(tokens)  > 0 :
-        loop = asyncio.get_event_loop()
-        executor = ThreadPoolExecutor(len(tokens))
-        for token in tokens:
-            q = asyncio.ensure_future(loop.run_in_executor(executor, slack_messaging, token))
+    # if len(tokens)  > 0 :
+    #     loop = asyncio.get_event_loop()
+    #     executor = ThreadPoolExecutor(len(tokens))
+    #     for token in tokens:
+    #         q = asyncio.ensure_future(loop.run_in_executor(executor, slack_messaging, token))
 
-    # slack_messaging("xoxb-210037203348-w2VEE9syr7JcMHV7gYxMI1Md")
+    slack_messaging("xoxb-210037203348-w2VEE9syr7JcMHV7gYxMI1Md")
 
     # starting thread spawning application
     # тут запускается веб-приложение на aiohttp, которое обрабатывает запросы

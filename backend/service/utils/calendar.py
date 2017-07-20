@@ -128,14 +128,11 @@ def create_event(google_auth, event_text, event_start_new, event_end_new):
     logging.info(not event_start_new or not event_end_new)
 
     if not event_start_new or not event_end_new:
-        event_start_new = datetime.datetime.now() + datetime.timedelta(minutes=15)
+        event_start_new = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=15)
         event_end_new = event_start_new + datetime.timedelta(minutes=default_length)
 
-    logging.info(event_start_new)
-    logging.info(event_end_new)
-
-    event_start_new = timezone.localize(event_start_new)
-    event_end_new = timezone.localize(event_end_new)
+    event_start_new = event_start_new.astimezone(timezone)
+    event_end_new = event_end_new.astimezone(timezone)
 
     parse_settings = {'RETURN_AS_TIMEZONE_AWARE': True}
 
