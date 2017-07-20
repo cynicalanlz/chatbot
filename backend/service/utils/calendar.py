@@ -82,7 +82,7 @@ def datetime_to_rfc(dt):
     if dt.utcoffset() is not None:
         return dt.isoformat()
     else:
-        return "%sZ" % dt.isoformat()
+        return "{}Z".format(dt.isoformat())
 
 def create_event(google_auth, event_text, event_start_new, event_end_new):
     """

@@ -268,13 +268,13 @@ class Handler:
         """
         token = request.query.get('token', "")
         self.running.add(token)
-        if token not in self.running:
-            try:
-                t = threading.Thread(target=slack_messaging, args=(token,))
-                t.daemon = True
-                t.start()
-            except:
-                return web.Response(text=str(sys.exc_info()[0]))
+        # if token not in self.running:
+        try:
+            t = threading.Thread(target=slack_messaging, args=(token,))
+            t.daemon = True
+            t.start()
+        except:
+            return web.Response(text=str(sys.exc_info()[0]))
 
         return web.Response(text='ok')
 
