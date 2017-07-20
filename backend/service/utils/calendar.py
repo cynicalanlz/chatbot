@@ -75,6 +75,15 @@ def has_overlap(A_start, A_end, B_start, B_end):
     earliest_end = min(A_end, B_end)
     return latest_start <= earliest_end
 
+
+def datetime_to_rfc(dt):
+    """Return a RFC3339 date-time string corresponding to the given
+    datetime object."""
+    if dt.utcoffset() is not None:
+        return dt.isoformat()
+    else:
+        return "%sZ" % dt.isoformat()
+
 def create_event(google_auth, event_text, event_start_new, event_end_new):
     """
     Checks for overlaps and creates the event in google calendar
@@ -98,29 +107,39 @@ def create_event(google_auth, event_text, event_start_new, event_end_new):
 
     if not auth or not creds or creds.invalid:
         return [], ''
-
- 
     
     service = get_service(creds)
     events = get_events(service)
     primary_calendar = get_primary_calendar(service)
     tz = service.settings().get(setting='timezone').execute()
+    default_length = service.settings().get(setting='defaultEventLength').execute()
 
+    if default_length:
+        default_length = int(default_length['value'])
+        
     if tz:
         tz = tz['value']
     else:
         tz = 'America/Los_Angeles'
     
     logging.info(tz)    
-
     timezone = pytz.timezone(tz) # @@TODO check if timezones match or actually exist
+
+    logging.info(not event_start_new or not event_end_new)
+
+    if not event_start_new or not event_end_new:
+        event_start_new = datetime.datetime.now() + datetime.timedelta(minutes=15)
+        event_end_new = event_start_new + datetime.timedelta(minutes=default_length)
+
+    logging.info(event_start_new)
+    logging.info(event_end_new)
+
     event_start_new = timezone.localize(event_start_new)
     event_end_new = timezone.localize(event_end_new)
 
     parse_settings = {'RETURN_AS_TIMEZONE_AWARE': True}
 
     overlap_texts_format_string = '- {}, which is between {} - {};\n'
-
 
     res = ''   
 
@@ -145,17 +164,16 @@ def create_event(google_auth, event_text, event_start_new, event_end_new):
             ovarlaps_joined = ''.join(overlap_texts)                
             res +=  'Overlaps with: \n {texts}.'.format(texts=ovarlaps_joined)
 
-
     event = {
       'summary': event_text,
       # 'location': '800 Howard St., San Francisco, CA 94103',
       # 'description': 'A chance to hear more about Google\'s developer products.',
       'start': {
-        'dateTime':  event_start_new.isoformat("T"),
+        'dateTime':  datetime_to_rfc(event_start_new),
         # 'timeZone': tz,
       },
       'end': {
-        'dateTime': event_end_new.isoformat("T"),
+        'dateTime': datetime_to_rfc(event_end_new),
         # 'timeZone': tz,
       },
       'reminders': {

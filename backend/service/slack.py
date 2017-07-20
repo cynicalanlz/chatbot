@@ -20,9 +20,6 @@ from utils.ai import get_ai_response
 
 import logging
 
-import codecs
-
-
 FORMAT = '%(asctime)-15s%(message)s'
 logging.basicConfig(filename='slack.log',level=logging.DEBUG, format=FORMAT)
 
@@ -68,19 +65,21 @@ def get_datetimes(event_date, event_start_time ,event_end_time):
 
     """
 
+    time_format = "{}T{}"
+
     if event_date and event_start_time and event_end_time:
-        event_start_time = "%sT%s" % (event_date, event_start_time)
-        event_end_time = "%sT%s" % (event_date, event_end_time)
+        event_start_time = time_format.format(event_date, event_start_time)
+        event_end_time = time_format.format(event_date, event_end_time)
         event_start_time = parse(event_start_time)
         event_end_time = parse(event_end_time)
     elif event_date:
-        event_start_time = "%sT%s" % (event_date, "00:00")
-        event_end_time = "%sT%s" % (event_date, "23:59")
+        event_start_time = time_format.format(event_date, "00:00")
+        event_end_time = time_format.format(event_date, "23:59")
         event_start_time = parse(event_start_time)
         event_end_time = parse(event_end_time)
     else:
-        event_start_time = datetime.datetime.now() + datetime.timedelta(minutes=15)
-        event_end_time = event_start_time + datetime.timedelta(minutes=30)
+        event_start_time = False
+        event_end_time = False
 
     return event_start_time, event_end_time
 
@@ -92,6 +91,7 @@ def message(sc, ch, txt, thread):
       as_user=False,
       username="tapdone bot"
     )
+
 
 def slack_messaging(token):
     """
@@ -114,7 +114,6 @@ def slack_messaging(token):
     token : string
             token for slack team
 
-
     """
     sc = SlackClient(token)    
     if not sc.rtm_connect():
@@ -126,57 +125,41 @@ def slack_messaging(token):
     users = {}
 
     while True:
-        buf = sc.rtm_read()
-        if buf == []: continue
-        for item in buf:           
-
-            if item.get('type', '') != 'message': continue
-            
+        buf = sc.rtm_read() # reads all events
+        if buf == []: continue # if no events skips
+        for item in buf:
+            if item.get('type', '') != 'message': continue # skip not message events      
             team = item.get('team', '') or item.get('source_team', '')
             subtype = item.get('subtype', '')
-            if subtype == 'bot_message' or not team: continue
+            if subtype == 'bot_message' or not team: continue # skip bot messsages
             slid = item.get('user', 1)            
                        
             resp =  {
                 'sc' : sc, 
                 'ch' : item['channel'],
-                'txt' : '', 
+                'txt' : '',
                 'thread': item['ts']
-            } 
+            }
 
+            auth, auth_message = check_auth(slid)
 
-            auth = get_user_google_auth(slid)           
-
-            if not auth:
-                resp['txt'] = """\
-                Looks like you are not authorized. To authorize Google Calendar open this url in browser %s?slid=%s&tid=%s\
-                """ % (config['GOOGLE_API_REDIRECT_URL'], slid, team)
+            if auth_message:
+                resp['txt'] = auth_message
                 message(**resp)
-                continue      
-
-            elif auth == 'multiple':
-                resp['txt'] = """\
-                Looks like you have multiple records for your id. Contact the app admin.\
-                """
-                message(**resp)
-                continue    
             
             msg = item.get('text', '')
-            msg_type, event_text, event_start_time, event_end_time, event_date, speech = get_ai_response(slid, msg)
-
+            msg_type, event_text, event_start_time, \
+                event_end_time, event_date, speech = get_ai_response(slid, msg) # get response from api.ai
 
             if not speech: continue
 
-
             resp['txt'] = speech
-
 
             if msg_type == 'Create task':
                 event_start_time, event_end_time = get_datetimes(event_date, event_start_time, event_end_time)
                 e, e_resp = create_event(auth, event_text, event_start_time, event_end_time)            
                 resp['txt'] += "\nEvent link: {link} .\n".format(link=e['htmlLink']) + e_resp
                 
-
             message(**resp)
 
 def get_url_json(url):
@@ -194,14 +177,17 @@ def get_url_json(url):
 
     h = httplib2.Http(".cache")
 
-    (resp_headers, content) = h.request(url, "GET")
-
-
-    if not content:
-        return False
+    (resp_headers, content) = h.request(url, "GET")    
     
     content = content.decode('utf-8')
-    jsn = json.loads(content)
+
+    if content is None or not content:
+        return {}
+
+    try:
+        jsn = json.loads(content)
+    except:
+        return {}
 
     return jsn
     
@@ -217,12 +203,33 @@ def get_user_google_auth(slid):
 
     """
 
-    format_string = "/api/v1/get_user_google_auth?slid=%s"
-    url = format_string % slid 
+    format_string = "/api/v1/get_user_google_auth?slid={}"
+    url = format_string.format(slid)
     jsn = get_url_json(url)
-    val = jsn.get('google_auth', False)
+
+    val = False
+
+    if jsn:
+        val = jsn.get('google_auth', False)
 
     return val
+
+def check_auth(slid):
+    auth = get_user_google_auth(slid) # get user google calendar auth
+    message = False
+
+    if not auth:
+        message = """\
+        Looks like you are not authorized. To authorize Google Calendar open this url in browser {}?slid={}&tid={}\
+        """.format(config['GOOGLE_API_REDIRECT_URL'], slid, team)
+
+    elif auth == 'multiple':
+        message = """\
+        Looks like you have multiple records for your id. Contact the app admin.\
+        """
+
+    return auth, message
+
 
 def get_tokens():
     """
@@ -231,6 +238,8 @@ def get_tokens():
     """
 
     jsn = get_url_json("/api/v1/get_tokens")
+
+    tokens = []
 
     if jsn:        
         tokens = jsn['tokens']
@@ -287,7 +296,7 @@ def main():
 
     # starting thread spawning application
     # тут запускается веб-приложение на aiohttp, которое обрабатывает запросы
-    # на открытие slack_messaging
+    # на открытие потока с функцией slack_messaging внутир
     app = web.Application()
     handler = Handler(tokens)
     app.router.add_get('/slack_api/v1/slack_team_process', handler.handle_slack_team)
@@ -299,4 +308,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
