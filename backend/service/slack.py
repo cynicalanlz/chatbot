@@ -146,6 +146,7 @@ def slack_messaging(token):
             if auth_message:
                 resp['txt'] = auth_message
                 message(**resp)
+                continue
             
             msg = item.get('text', '')
             msg_type, event_text, event_start_time, \
