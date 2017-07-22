@@ -28,6 +28,7 @@ from service.utils.calendar import get_service, get_events, create_event
 from slackclient import SlackClient
 
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
+from logging.handlers import RotatingFileHandler
 
 
 
@@ -36,12 +37,18 @@ v = '/v1/'
 
 
 import logging, sys
-logging.basicConfig(filename='api.log',level=logging.DEBUG)
+
+LOG_FILENAME = 'api.log'
+
+fileHandler = RotatingFileHandler(LOG_FILENAME, maxBytes=20971520,
+                                  backupCount=5, encoding='utf-8')
+fileHandler.setLevel(logging.DEBUG)
+filefmt = '%(asctime)s [%(filename)s:%(lineno)d] %(rid)s: %(message)s'
+fileFormatter = logging.Formatter(filefmt)
+fileHandler.setFormatter(fileFormatter)
 
 logger = logging.getLogger(__name__)
-handler = logging.StreamHandler(stream=sys.stdout)
-logger.addHandler(handler)
-
+logger.addHandler(fileHandler)
 
 
 
@@ -81,10 +88,17 @@ def slack_team_process(token):
     event_date : string      
     """
     h = httplib2.Http(".cache")    
-    format_string = config['SLACK_PROTOCOL']+"://"+config['SLACK_HOST']+"/slack_api/v1/slack_team_process?token=%s"    
+    format_string = config['SLACK_PROTOCOL']+"://"+config['SLACK_HOST']+"/slack_api/v1/slack_team_process?token=%s"        
     url = format_string % token
+    logging.info(url)
     (resp_headers, content) = h.request(url, "GET")
-    return resp_headers
+
+    content = content.decode('utf-8')
+
+    if content is None or not content:
+        return resp_headers, ''
+
+    return resp_headers, content
 
 
 @api.route(v+"register_slack", methods=["GET", "POST"])
@@ -146,9 +160,23 @@ def slack_post_install():
     team.bot_user_id = auth_response['bot']['bot_user_id']
 
     db.session.commit()
-    slack_team_process(team.bot_token)
-  
-    return jsonify({'msg' : 'ok'})
+
+    try:
+        head, cont = slack_team_process(team.bot_token)
+        logging.info(head)
+
+        return jsonify({
+               'msg' : 'got response',
+               'head' : head,
+               'content' : cont
+            }), int(head['status'])
+
+    except Exception as e: 
+        logger.exception(e)
+
+        return jsonify({'msg' : 'exception'}), 500
+
+
 
 
 @api.route(v+'register_cb')
@@ -306,7 +334,7 @@ def get_user_google_auth():
         db.session.commit()
                  
         return jsonify({
-            'google_auth' : json.dumps(credentials.to_json()                    )
+            'google_auth' : json.dumps(credentials.to_json())
         }), 200
 
     return jsonify({

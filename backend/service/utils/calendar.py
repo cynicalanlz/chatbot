@@ -166,7 +166,7 @@ def create_event(google_auth, event_text, event_date, event_start_time, event_en
         tz = 'America/Los_Angeles'
     
     logging.info(tz)    
-    timezone = pytz.timezone(tz) # @@TODO check if timezones match or actually exist
+    timezone = pytz.timezone(tz)
 
     event_start_new, event_end_new = get_datetimes(event_date, event_start_time, event_end_time)
 

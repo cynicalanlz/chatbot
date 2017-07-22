@@ -17,28 +17,101 @@ from aiohttp import web
 
 from utils.lib import get_or_create
 from utils.ai import get_ai_response
+from utils.http_libs import get_user_google_auth, get_tokens
 
 import logging
+import logging.config
+import argparse
 
-FORMAT = '%(asctime)-15s%(message)s'
-logging.basicConfig(filename='slack.log',level=logging.DEBUG, format=FORMAT)
+parser = argparse.ArgumentParser(description="aiohttp server example")
+parser.add_argument('--path')
+parser.add_argument('--port')
+
+logging_config = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "simple": {
+            "format": '%(asctime)s [%(filename)s:%(lineno)d] %(rid)s: %(message)s'
+        }
+    },
+
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "level": "DEBUG",
+            "formatter": "simple",
+            "stream": "ext://sys.stdout"
+        },
+
+        "info_file_handler": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": "INFO",
+            "formatter": "simple",
+            "filename": "slack_app.log",
+            "maxBytes": 10485760,
+            "backupCount": 20,
+            "encoding": "utf8"
+        },
+
+        "error_file_handler": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": "ERROR",
+            "formatter": "simple",
+            "filename": "slack_app_error.log",
+            "maxBytes": 10485760,
+            "backupCount": 20,
+            "encoding": "utf8"
+        }
+    },
+
+    "loggers": {
+        "aiohttp.access": {
+            "level": "DEBUG",
+            "handlers": ["console", "info_file_handler"],
+            "propagate": "no"
+        },
+        "aiohttp.client": {
+            "level": "DEBUG",
+            "handlers": ["console", "info_file_handler"],
+            "propagate": "no"
+        },
+        "aiohttp.internal": {
+            "level": "DEBUG",
+            "handlers": ["console", "info_file_handler"],
+            "propagate": "no"
+        },
+        "aiohttp.access": {
+            "level": "DEBUG",
+            "handlers": ["console", "info_file_handler"],
+            "propagate": "no"
+        },
+        "aiohttp.server": {
+            "level": "DEBUG",
+            "handlers": ["console", "info_file_handler"],
+            "propagate": "no"
+        },
+        "aiohttp.web": {
+            "level": "DEBUG",
+            "handlers": ["console", "info_file_handler"],
+            "propagate": "no"
+        },
+        "aaiohttp.websocket": {
+            "level": "DEBUG",
+            "handlers": ["console", "info_file_handler"],
+            "propagate": "no"
+        }
+
+    },
+
+    "root": {
+        "level": "INFO",
+        "handlers": ["console", "info_file_handler", "error_file_handler"]
+    }
+}
 
 logger = logging.getLogger(__name__)
-handler = logging.StreamHandler(stream=sys.stdout)
-logger.addHandler(handler)
-logging.getLogger('googleapiclient.discovery').setLevel(logging.CRITICAL)
-
-
-def handle_exception(exc_type, exc_value, exc_traceback):
-    if issubclass(exc_type, KeyboardInterrupt):
-        sys.__excepthook__(exc_type, exc_value, exc_traceback)
-        return
-
-    logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
-
-sys.excepthook = handle_exception
-
-
+logging.config.dictConfig(logging_config)
 config = os.environ
 
 
@@ -51,6 +124,22 @@ def message(sc, ch, txt, thread):
       username="tapdone bot"
     )
 
+
+def check_auth(slid):
+    auth = get_user_google_auth(slid) # get user google calendar auth
+    message = False
+
+    if not auth:
+        message = """\
+        Looks like you are not authorized. To authorize Google Calendar open this url in browser {}?slid={}&tid={}\
+        """.format(config['GOOGLE_API_REDIRECT_URL'], slid, team)
+
+    elif auth == 'multiple':
+        message = """\
+        Looks like you have multiple records for your id. Contact the app admin.\
+        """
+
+    return auth, message
 
 def slack_messaging(token):
     """
@@ -128,101 +217,13 @@ def slack_messaging(token):
                 
             message(**resp)
 
-def get_url_json(url):
-
-    hostname = ''.join([
-        config['FLASK_PROTOCOL'],
-        "://",
-        config['FLASK_HOST']
-    ])
-    
-    url = ''.join([
-        hostname,
-        url,
-        ])
-
-    h = httplib2.Http(".cache")
-
-    (resp_headers, content) = h.request(url, "GET")    
-    
-    content = content.decode('utf-8')
-
-    if content is None or not content:
-        return {}
-
-    try:
-        jsn = json.loads(content)
-    except:
-        return {}
-
-    return jsn
-    
-
-def get_user_google_auth(slid):
-    """
-    Gets user's calendar authentication
-    
-    @@params
-    ----------
-    slid : string
-           slack team id
-
-    """
-
-    format_string = "/api/v1/get_user_google_auth?slid={}"
-    url = format_string.format(slid)
-    jsn = get_url_json(url)
-
-    val = False
-
-    if jsn:
-        val = jsn.get('google_auth', False)
-
-    return val
-
-def check_auth(slid):
-    auth = get_user_google_auth(slid) # get user google calendar auth
-    message = False
-
-    if not auth:
-        message = """\
-        Looks like you are not authorized. To authorize Google Calendar open this url in browser {}?slid={}&tid={}\
-        """.format(config['GOOGLE_API_REDIRECT_URL'], slid, team)
-
-    elif auth == 'multiple':
-        message = """\
-        Looks like you have multiple records for your id. Contact the app admin.\
-        """
-
-    return auth, message
-
-
-def get_tokens():
-    """
-    Gets tokens via api    
-
-    """
-
-    jsn = get_url_json("/api/v1/get_tokens")
-
-    tokens = []
-
-    if jsn:        
-        tokens = jsn['tokens']
-    
-    return set(tokens)
-
-
 class Handler:
     """
     Handls thread spawn requests.
     Keeps track on not unique tokens.
-
     Асинхронный хендлер, который создает потоки slack_messaging, 
     когда приходит http запрос на урл
     /slack_api/v1/slack_team_process
-
-
     """
     def __init__(self, tokens):
         self.running = tokens
@@ -244,11 +245,16 @@ class Handler:
 
         return web.Response(text='ok')
 
+def init_app(tokens):
+    app = web.Application()
+    handler = Handler(tokens)
+    app.router.add_get('/slack_api/slack_team_process', handler.handle_slack_team)
+    return app
+
 def main():
-    # getting tokens via api
     tokens = get_tokens()
 
-    logging.info(tokens)
+    # logging.info(tokens)
 
     # spawning initial threads
     # потоки по slack_messaging полученным из токе
@@ -258,19 +264,16 @@ def main():
         for token in tokens:
             q = asyncio.ensure_future(loop.run_in_executor(executor, slack_messaging, token))
 
-    # slack_messaging("xoxb-210037203348-w2VEE9syr7JcMHV7gYxMI1Md")
 
-    # starting thread spawning application
-    # тут запускается веб-приложение на aiohttp, которое обрабатывает запросы
-    # на открытие потока с функцией slack_messaging внутир
-    app = web.Application()
-    handler = Handler(tokens)
-    app.router.add_get('/slack_api/v1/slack_team_process', handler.handle_slack_team)
-    logger = logging.getLogger('aiohttp.access')
-    app.make_handler(access_log=logger)
-    web.run_app(app, host=config['SLACK_HOST'], port=int(config['SLACK_PORT']))
+    args = parser.parse_args()
 
-    loop.run_forever()
+    app = init_app(tokens)
+    web.run_app(app, host=args.path)
 
-if __name__ == "__main__":
-    main()
+if __name__ == "__main__":    
+    try:
+        main()
+    except Exception as e:
+        logging.exception(e)
+        raise
+    

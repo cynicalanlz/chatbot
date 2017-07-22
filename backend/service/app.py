@@ -14,9 +14,9 @@ import traceback
 
 app = Flask(__name__)
 
-LOG_FILENAME = 'app_access_logs.log'
+LOG_FILENAME = 'tdm.log'
 
-app.logger.setLevel(logging.INFO) # use the native logger of flask
+app.logger.setLevel(logging.DEBUG) # use the native logger of flask
 
 handler = logging.handlers.RotatingFileHandler(
     LOG_FILENAME,
@@ -28,6 +28,9 @@ handler = logging.handlers.RotatingFileHandler(
 logger = logging.getLogger('tdm')
 logger.setLevel(logging.ERROR)
 logger.addHandler(handler)
+
+LOG_FILENAME = 'app_access.log'
+
 
 fileHandler = RotatingFileHandler(LOG_FILENAME, maxBytes=20971520,
                                   backupCount=5, encoding='utf-8')
