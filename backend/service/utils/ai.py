@@ -1,7 +1,7 @@
 #coding=utf-8
 import json
 import datetime, pytz
-import os
+import os, sys
 
 try:
     import apiai
@@ -30,11 +30,20 @@ def get_ai_response(slid, msg):
     event_text = params.get('any', "Test task text")
     event_time = params.get('time', [])
 
-    if len(event_time) == 2:            
-        event_start_time = event_time[0]
-        event_end_time = event_time[1]
+    if isinstance(event_time, list):
+        if len(event_time) == 2:            
+            event_start_time = event_time[0]
+            event_end_time = event_time[1]
+
+        elif len(event_time) == 1:
+            event_start_time = event_time[0]
+            event_end_time = False
+            
+        else:
+            event_start_time = False
+            event_end_time = False
     else:
-        event_start_time = False
+        event_start_time = event_time
         event_end_time = False
 
     event_date = params.get('date', '')

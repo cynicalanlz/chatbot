@@ -43,7 +43,7 @@ LOG_FILENAME = 'api.log'
 fileHandler = RotatingFileHandler(LOG_FILENAME, maxBytes=20971520,
                                   backupCount=5, encoding='utf-8')
 fileHandler.setLevel(logging.DEBUG)
-filefmt = '%(asctime)s [%(filename)s:%(lineno)d] %(rid)s: %(message)s'
+filefmt = '%(asctime)s [%(filename)s:%(lineno)d] %(message)s'
 fileFormatter = logging.Formatter(filefmt)
 fileHandler.setFormatter(fileFormatter)
 

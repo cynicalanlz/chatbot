@@ -32,7 +32,7 @@ logging_config = {
     "disable_existing_loggers": False,
     "formatters": {
         "simple": {
-            "format": '%(asctime)s [%(filename)s:%(lineno)d] %(rid)s: %(message)s'
+            "format": '%(asctime)s [%(filename)s:%(lineno)d] : %(message)s'
         }
     },
 
@@ -260,7 +260,6 @@ def main():
     # logging.info(tokens)
 
     # spawning initial threads
-    # потоки по slack_messaging полученным из токе
     if len(tokens)  > 0 :
         loop = asyncio.get_event_loop()
         executor = ThreadPoolExecutor(len(tokens))

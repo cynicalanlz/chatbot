@@ -18,6 +18,7 @@ import pytz
 config = os.environ
 
 import logging, sys
+from logging.handlers import RotatingFileHandler
 
 def get_service(creds):
     """
@@ -85,7 +86,7 @@ def datetime_to_rfc(dt):
         return "{}Z".format(dt.isoformat())
 
 
-def get_datetimes(event_date, event_start_time ,event_end_time):
+def get_datetimes(event_date, event_start_time ,event_end_time, default_length):
     """
     Datetime conversion utility
     converts from date and start and end time
@@ -110,22 +111,37 @@ def get_datetimes(event_date, event_start_time ,event_end_time):
 
     time_format = "{}T{}"
 
-    logging.info(event_date, event_start_time ,event_end_time)
-    if event_date and event_start_time and event_end_time:
+    is_date = False
+    event_date = False
+
+    logging.info(str(event_date), str(event_start_time), str(event_end_time))
+
+    if event_date and event_start_time and event_end_time:        
         event_start_time = time_format.format(event_date, event_start_time)
         event_end_time = time_format.format(event_date, event_end_time)
         event_start_time = parse(event_start_time)
         event_end_time = parse(event_end_time)
+    elif event_date and event_start_time:        
+        event_start_time = time_format.format(event_date, event_start_time)
+        event_end_time = event_start_time + datetime.timedelta(minutes=default_length)
+        event_start_time = parse(event_start_time)
+        event_end_time = parse(event_end_time)
     elif event_date:
+        is_date = True
+        event_date = event_date
         event_start_time = time_format.format(event_date, "00:00")
         event_end_time = time_format.format(event_date, "23:59")
         event_start_time = parse(event_start_time)
         event_end_time = parse(event_end_time)
     else:
-        event_start_time = False
-        event_end_time = False
+        is_date = True
+        event_date = datetime.datetime.now().strftime('%Y-%m-%d')
+        event_start_time = time_format.format(event_date, "00:00")
+        event_end_time = time_format.format(event_date, "23:59")
+        event_start_time = parse(event_start_time)
+        event_end_time = parse(event_end_time)
 
-    return event_start_time, event_end_time
+    return event_start_time, event_end_time, is_date, event_date
 
 
 def create_event(google_auth, event_text, event_date, event_start_time, event_end_time):
@@ -165,16 +181,12 @@ def create_event(google_auth, event_text, event_date, event_start_time, event_en
     else:
         tz = 'America/Los_Angeles'
     
-    logging.info(tz)    
     timezone = pytz.timezone(tz)
 
-    event_start_new, event_end_new = get_datetimes(event_date, event_start_time, event_end_time)
 
-    logging.info(not event_start_new or not event_end_new)
+    event_start_new, event_end_new, is_date, event_date = get_datetimes(event_date, event_start_time, event_end_time, default_length)
 
-    if not event_start_new or not event_end_new:
-        event_start_new = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=15)
-        event_end_new = event_start_new + datetime.timedelta(minutes=default_length)
+    if not is_date:    
         event_start_new = event_start_new.astimezone(timezone)
         event_end_new = event_end_new.astimezone(timezone)
     else:
@@ -186,6 +198,7 @@ def create_event(google_auth, event_text, event_date, event_start_time, event_en
     overlap_texts_format_string = '- {}, which is between {} - {};\n'
 
     res = ''   
+
 
     if events and len(events) > 0:     
         overlap_texts = []
@@ -208,18 +221,29 @@ def create_event(google_auth, event_text, event_date, event_start_time, event_en
             ovarlaps_joined = ''.join(overlap_texts)                
             res +=  'Overlaps with: \n {texts}.'.format(texts=ovarlaps_joined)
 
+
+    if is_date:
+        event_config_start = {
+            'date' : event_date
+        }
+        event_config_end = {
+            'date' : event_date
+        }
+    else:
+        event_config_start = {
+            'dateTime':  datetime_to_rfc(event_start_new)
+        }
+        event_config_end = {
+            'dateTime': datetime_to_rfc(event_end_new)
+        }
+
+
     event = {
       'summary': event_text,
       # 'location': '800 Howard St., San Francisco, CA 94103',
       # 'description': 'A chance to hear more about Google\'s developer products.',
-      'start': {
-        'dateTime':  datetime_to_rfc(event_start_new),
-        # 'timeZone': tz,
-      },
-      'end': {
-        'dateTime': datetime_to_rfc(event_end_new),
-        # 'timeZone': tz,
-      },
+      'start': event_config_start,
+      'end': event_config_end,
       'reminders': {
         'useDefault': False,
         'overrides': [
