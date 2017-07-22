@@ -86,7 +86,7 @@ def datetime_to_rfc(dt):
         return "{}Z".format(dt.isoformat())
 
 
-def get_datetimes(event_date, event_start_time ,event_end_time, default_length):
+def get_datetimes(event_date, event_start_time ,event_end_time, default_length, timezone):
     """
     Datetime conversion utility
     converts from date and start and end time
@@ -112,7 +112,6 @@ def get_datetimes(event_date, event_start_time ,event_end_time, default_length):
     time_format = "{}T{}"
 
     is_date = False
-    event_date = False
 
     logging.info(str(event_date), str(event_start_time), str(event_end_time))
 
@@ -121,11 +120,16 @@ def get_datetimes(event_date, event_start_time ,event_end_time, default_length):
         event_end_time = time_format.format(event_date, event_end_time)
         event_start_time = parse(event_start_time)
         event_end_time = parse(event_end_time)
+        event_start_new = event_start_new.localize(timezone)
+        event_end_new = event_end_new.localize(timezone)
+    
     elif event_date and event_start_time:        
         event_start_time = time_format.format(event_date, event_start_time)
-        event_end_time = event_start_time + datetime.timedelta(minutes=default_length)
         event_start_time = parse(event_start_time)
-        event_end_time = parse(event_end_time)
+        event_end_time = event_start_time + datetime.timedelta(minutes=default_length)
+        event_start_new = event_start_new.localize(timezone)
+        event_end_new = event_end_new.localize(timezone)
+    
     elif event_date:
         is_date = True
         event_date = event_date
@@ -133,6 +137,9 @@ def get_datetimes(event_date, event_start_time ,event_end_time, default_length):
         event_end_time = time_format.format(event_date, "23:59")
         event_start_time = parse(event_start_time)
         event_end_time = parse(event_end_time)
+        event_start_new = event_start_new.localize(timezone)
+        event_end_new = event_end_new.localize(timezone)
+    
     else:
         is_date = True
         event_date = datetime.datetime.now().strftime('%Y-%m-%d')
@@ -140,6 +147,8 @@ def get_datetimes(event_date, event_start_time ,event_end_time, default_length):
         event_end_time = time_format.format(event_date, "23:59")
         event_start_time = parse(event_start_time)
         event_end_time = parse(event_end_time)
+        event_start_new = timezone.astimezone(event_start_new)
+        event_end_new = timezone.astimezone(event_end_new)
 
     return event_start_time, event_end_time, is_date, event_date
 
@@ -184,14 +193,7 @@ def create_event(google_auth, event_text, event_date, event_start_time, event_en
     timezone = pytz.timezone(tz)
 
 
-    event_start_new, event_end_new, is_date, event_date = get_datetimes(event_date, event_start_time, event_end_time, default_length)
-
-    if not is_date:    
-        event_start_new = event_start_new.astimezone(timezone)
-        event_end_new = event_end_new.astimezone(timezone)
-    else:
-        event_start_new = timezone.localize(event_start_new)
-        event_end_new = timezone.localize(event_end_new)
+    event_start_new, event_end_new, is_date, event_date = get_datetimes(event_date, event_start_time, event_end_time, default_length, timezone)
 
     parse_settings = {'RETURN_AS_TIMEZONE_AWARE': True}
 
