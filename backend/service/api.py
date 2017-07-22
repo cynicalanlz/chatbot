@@ -88,7 +88,7 @@ def slack_team_process(token):
     event_date : string      
     """
     h = httplib2.Http(".cache")    
-    format_string = config['SLACK_PROTOCOL']+"://"+config['SLACK_HOST']+"/slack_api/v1/slack_team_process?token=%s"        
+    format_string = config['SLACK_PROTOCOL']+"://"+config['SLACK_HOST'] + ":" + config['SLACK_PORT'] +"/slack_api/v1/slack_team_process?token=%s"        
     url = format_string % token
     logging.info(url)
     (resp_headers, content) = h.request(url, "GET")

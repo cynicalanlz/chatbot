@@ -237,9 +237,12 @@ class Handler:
         self.running.add(token)
         # if token not in self.running:
         try:
-            t = threading.Thread(target=slack_messaging, args=(token,))
-            t.daemon = True
-            t.start()
+            if token:
+                t = threading.Thread(target=slack_messaging, args=(token,))
+                t.daemon = True
+                t.start()
+            else:
+                return web.Response(text='no token found')
         except:
             return web.Response(text=str(sys.exc_info()[0]))
 
@@ -248,7 +251,7 @@ class Handler:
 def init_app(tokens):
     app = web.Application()
     handler = Handler(tokens)
-    app.router.add_get('/slack_api/slack_team_process', handler.handle_slack_team)
+    app.router.add_get('/slack_api/v1/slack_team_process', handler.handle_slack_team)
     return app
 
 def main():
@@ -264,11 +267,10 @@ def main():
         for token in tokens:
             q = asyncio.ensure_future(loop.run_in_executor(executor, slack_messaging, token))
 
-
     args = parser.parse_args()
-
     app = init_app(tokens)
-    web.run_app(app, host=args.path)
+    # web.run_app(app, host=args.path)
+    web.run_app(app, host=config['SLACK_HOST'], port=int(config['SLACK_PORT']))
 
 if __name__ == "__main__":    
     try:
