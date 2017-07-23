@@ -86,7 +86,7 @@ def datetime_to_rfc(dt):
         return "{}Z".format(dt.isoformat())
 
 
-def get_datetimes(event_date, event_start_time ,event_end_time, default_length, timezone):
+def get_datetimes(event_date, event_start_time ,event_end_time, default_length, tz):
     """
     Datetime conversion utility
     converts from date and start and end time
@@ -120,15 +120,15 @@ def get_datetimes(event_date, event_start_time ,event_end_time, default_length, 
         event_end_time = time_format.format(event_date, event_end_time)
         event_start_time = parse(event_start_time)
         event_end_time = parse(event_end_time)
-        event_start_new = event_start_new.localize(timezone)
-        event_end_new = event_end_new.localize(timezone)
+        event_start_time = tz.localize(event_start_time)
+        event_end_time = tz.localize(event_end_time)
     
     elif event_date and event_start_time:        
         event_start_time = time_format.format(event_date, event_start_time)
         event_start_time = parse(event_start_time)
         event_end_time = event_start_time + datetime.timedelta(minutes=default_length)
-        event_start_new = event_start_new.localize(timezone)
-        event_end_new = event_end_new.localize(timezone)
+        event_start_time = tz.localize(event_start_time)
+        event_end_time = tz.localize(event_end_time)
     
     elif event_date:
         is_date = True
@@ -137,18 +137,18 @@ def get_datetimes(event_date, event_start_time ,event_end_time, default_length, 
         event_end_time = time_format.format(event_date, "23:59")
         event_start_time = parse(event_start_time)
         event_end_time = parse(event_end_time)
-        event_start_new = event_start_new.localize(timezone)
-        event_end_new = event_end_new.localize(timezone)
+        event_start_time = tz.localize(event_start_time)
+        event_end_time = tz.localize(event_end_time)
     
     else:
         is_date = True
-        event_date = datetime.datetime.now().strftime('%Y-%m-%d')
+        event_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
         event_start_time = time_format.format(event_date, "00:00")
         event_end_time = time_format.format(event_date, "23:59")
         event_start_time = parse(event_start_time)
         event_end_time = parse(event_end_time)
-        event_start_new = timezone.astimezone(event_start_new)
-        event_end_new = timezone.astimezone(event_end_new)
+        event_start_time = tz.localize(event_start_time)
+        event_end_time = tz.localize(event_end_time)
 
     return event_start_time, event_end_time, is_date, event_date
 
