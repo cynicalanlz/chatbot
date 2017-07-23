@@ -266,6 +266,9 @@ def main():
         for token in tokens:
             q = asyncio.ensure_future(loop.run_in_executor(executor, slack_messaging, token))
 
+    # @@ todo: https://github.com/deis/controller/commit/54f0f75eb6f43a42aaa6f9afc2191039b22961e3#diff-0963809b7f97d478f173bb110a76d711R155
+    # https://github.com/deis/controller/pull/948
+    # https://github.com/python/asyncio/issues/258
 
     args = parser.parse_args()
     app = init_app(tokens)
