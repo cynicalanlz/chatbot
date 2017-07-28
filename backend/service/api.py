@@ -30,6 +30,13 @@ from slackclient import SlackClient
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from logging.handlers import RotatingFileHandler
 
+try:
+    import apiai
+except ImportError:
+    sys.path.append(
+        os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir)
+    )
+    import apiai
 
 
 api = Blueprint('api', __name__)
@@ -76,7 +83,7 @@ def register_slack_team():
     """
     return render_template('register_slack.html')
 
-def slack_team_process(token):
+def new_slack_team(token, team_id):
     """
     Makes api call to spawn slack team thread to slack
 
@@ -88,11 +95,10 @@ def slack_team_process(token):
     event_date : string      
     """
     h = httplib2.Http(".cache")    
-    format_string = config['SLACK_PROTOCOL']+"://"+config['SLACK_HOST'] + ":" + config['SLACK_PORT'] +"/slack_api/v1/slack_team_process?token=%s"        
-    url = format_string % token
+    format_string = config['SLACK_PROTOCOL']+"://"+config['SLACK_HOST'] + ":" + config['SLACK_PORT'] +"/slack_api/v1/new_slack_team?token={}&team_id={}"        
+    url = format_string.format(token,team_id)
     logging.info(url)
     (resp_headers, content) = h.request(url, "GET")
-
     content = content.decode('utf-8')
 
     if content is None or not content:
@@ -150,6 +156,8 @@ def slack_post_install():
         team_id=slack_tid
     )
 
+    logging.info(auth_response)
+
     if not auth_response.get('ok',False):
         return jsonify({'msg' : 'not ok'})
     
@@ -162,7 +170,7 @@ def slack_post_install():
     db.session.commit()
 
     try:
-        head, cont = slack_team_process(team.bot_token)
+        head, cont = new_slack_team(team.team_id, team.bot_token)
         logging.info(head)
 
         return jsonify({
@@ -171,12 +179,10 @@ def slack_post_install():
                'content' : cont
             }), int(head['status'])
 
-    except Exception as e: 
-        logger.exception(e)
-
-        return jsonify({'msg' : 'exception'}), 500
-
-
+    except Exception as e:
+        return jsonify({
+               'msg' : 'got error on new team creation'
+            }), 500
 
 
 @api.route(v+'register_cb')
@@ -266,10 +272,42 @@ def get_tokens():
 
     """
 
-    tokens = [x[0] for x in db.session.query(SlackTeam.bot_token).distinct()]
+    tokens = [(x['team_id'], x['bot_token']) for x in db.session.query(SlackTeam).distinct()]
 
     response = {
         'tokens' : tokens
+    }
+    
+    return jsonify(response), 200
+
+
+@api.route(v+'get_token')
+def get_token():
+    """
+    Returns slack bot token for a team
+
+    @@returns
+    token: : string
+
+    """
+    team = request.args.get('team')
+
+    try:
+        token = db.session.query(User).filter_by(slid=team).one()
+    except NoResultFound:
+        return jsonify({
+            'error' : True,
+            'token' : 'missing'
+        }), 404
+    except MultipleResultsFound:
+        return jsonify({
+            'error' : True,
+            'token' : 'multiple'
+        }), 404
+
+    response = {
+        'error': False
+        'token' : token
     }
     
     return jsonify(response), 200
@@ -340,6 +378,68 @@ def get_user_google_auth():
     return jsonify({
         'google_auth' : json.dumps(credentials.to_json())
     }), 200
+
+#----------------------------------------------
+# ----------- slack ---------------------------
+#----------------------------------------------
+
+@api.route(v+'get_ai_response')
+def get_ai_response():   
+
+    """
+    Gets api ai response text based on message
+    extracts events time, date and response to user.
+    """
+
+    ai = apiai.ApiAI(config['APIAI_CLIENT_ACCESS_TOKEN'])
+    request = ai.text_request()
+    request.session_id = slid
+    request.query = msg
+    airesponse = json.loads(request.getresponse().read().decode('utf8'))
+
+    res = airesponse.get('result',{})
+    msg_type = res.get('metadata', {}).get('intentName','')
+    params = res.get('parameters', {})
+    event_text = params.get('any', "Test task text")
+    event_time = params.get('time', [])
+
+    if isinstance(event_time, list):
+        if len(event_time) == 2:            
+            event_start_time = event_time[0]
+            event_end_time = event_time[1]
+
+        elif len(event_time) == 1:
+            event_start_time = event_time[0]
+            event_end_time = False
+            
+        else:
+            event_start_time = False
+            event_end_time = False
+    else:
+        event_start_time = event_time
+        event_end_time = False
+
+    event_date = params.get('date', '')
+    speech = res.get('fulfillment', {}).get('speech', '')
+
+    resp = {
+        'msg_type': msg_type, 
+        'event_text': event_text, 
+        'event_start_time': event_start_time, 
+        'event_end_time': event_end_time, 
+        'event_date': event_date, 
+        'speech':  speech,
+    }
+
+    return jsonify(resp)
+
+
+
+
+
+#-----------------------------------
+# ----------- misc -----------------
+#-----------------------------------
 
 
 @api.route('/health')

@@ -1,8 +1,9 @@
 import os, json, httplib2
-
+import aiohttp
 config = os.environ
 
-def get_url_json(url):
+
+async def get_url_json(url):
 
     hostname = ''.join([
         config['FLASK_PROTOCOL'],
@@ -15,24 +16,12 @@ def get_url_json(url):
         url,
         ])
 
-    h = httplib2.Http(".cache")
-
-    (resp_headers, content) = h.request(url, "GET")    
-    
-    content = content.decode('utf-8')
-
-    if content is None or not content:
-        return {}
-
-    try:
-        jsn = json.loads(content)
-    except:
-        return {}
-
-    return jsn
-    
-
-def get_user_google_auth(slid):
+    async with aiohttp.ClientSession() as session:
+        async with session.get('https://api.github.com/events') as resp:
+            if resp.status == 200:                
+                return await resp.json()
+            
+async def get_user_google_auth(slid):
     """
     Gets user's calendar authentication
     
@@ -45,7 +34,7 @@ def get_user_google_auth(slid):
 
     format_string = "/api/v1/get_user_google_auth?slid={}"
     url = format_string.format(slid)
-    jsn = get_url_json(url)
+    jsn = await get_url_json(url)
 
     val = False
 
@@ -54,30 +43,31 @@ def get_user_google_auth(slid):
 
     return val
 
-def check_auth(slid):
-    auth = get_user_google_auth(slid) # get user google calendar auth
-    message = False
+async def get_ai_response(slid, msg):
+    """
+    Gets user's calendar authentication
+    
+    @@params
+    ----------
+    slid : string
+           slack team id
 
-    if not auth:
-        message = """\
-        Looks like you are not authorized. To authorize Google Calendar open this url in browser {}?slid={}&tid={}\
-        """.format(config['GOOGLE_API_REDIRECT_URL'], slid, team)
+    """
 
-    elif auth == 'multiple':
-        message = """\
-        Looks like you have multiple records for your id. Contact the app admin.\
-        """
+    format_string = "/api/v1/get_ai_response?slid={}&msg={}"
+    url = format_string.format(slid)
+    jsn = await get_url_json(url)
 
-    return auth, message
+    return jsn
 
 
-def get_tokens():
+async def get_tokens():
     """
     Gets tokens via api    
 
     """
 
-    jsn = get_url_json("/api/v1/get_tokens")
+    jsn = await get_url_json("/api/v1/get_tokens")
 
     tokens = []
 
@@ -85,4 +75,18 @@ def get_tokens():
         tokens = jsn['tokens']
     
     return set(tokens)
+
+async def get_tokens(team):
+    """
+    Gets tokens via api    
+
+    """
+
+    jsn = await get_url_json("/api/v1/get_token?team={}".format(team))    
+
+    if jsn:        
+        token = jsn['token']    
+        return token
+    else:
+        return False
 
