@@ -27,6 +27,8 @@ async def get_url_json(url):
         async with session.get(url) as resp:
             if resp.status == 200:                
                 resp = await resp.json()
+                logging.info(url)
+                logging.info(resp)
                 return resp
             else:
                 resp = {
@@ -37,17 +39,12 @@ async def post_url_json(url, jsn):
 
     url = await add_flask_host(url)
 
-    logging.info(jsn)
-
     async with aiohttp.ClientSession() as session:
-        async with session.post(url, json=jsn) as resp:
-            logging.info(resp.status)
-            logging.info(resp.text())
-            logging.info(resp.json())
-
+        async with session.post(url, json=jsn) as resp:            
             if resp.status == 200:
-
                 resp = await resp.json()
+                logging.info(url)
+                logging.info(resp)
                 return resp
             else:
                 resp = {
@@ -91,9 +88,8 @@ async def get_ai_response(slid, msg):
     in_jsn['msg'] = msg
     url = "/api/v1/get_ai_response"
     out_jsn = await post_url_json(url, in_jsn)
-    user_response = out_jsn['response']
 
-    return jsn
+    return out_jsn
 
 
 async def get_tokens():
@@ -117,9 +113,7 @@ async def get_token(team):
 
     """
     format_string = "/api/v1/get_token?team={}"
-    url = format_string.format(slid)
-    url = url_format.format(team)
-
+    url = format_string.format(team)
     jsn = await get_url_json(url)
 
     if jsn:        
@@ -130,6 +124,7 @@ async def get_token(team):
 
 async def create_calendar_event(msg_type, event_text, event_start_time, event_end_time, event_date, speech):
     url = '/api/v1/create_calendar_event'
+    
     in_jsn = {}
     in_jsn['msg_type'] = msg_type
     in_jsn['event_text'] = event_text
@@ -137,6 +132,9 @@ async def create_calendar_event(msg_type, event_text, event_start_time, event_en
     in_jsn['event_end_time'] = event_end_time
     in_jsn['event_date'] = event_date
     in_jsn['speech'] = speech
-    out_jsn = await post_url_json(url, in_jsn)
-    user_response = out_jsn['response']
-    return user_response
+
+    api_resp = await post_url_json(url, in_jsn)
+    user_response = api_resp['response']
+    event_link = api_resp['event_link']
+
+    return event_link, user_response

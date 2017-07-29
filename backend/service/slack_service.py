@@ -36,7 +36,7 @@ class Handler:
     def __init__(self, verification):
         self.verification = verification
 
-    async def check_auth(self, slid):
+    async def check_auth(self, slid, team):
         auth = await get_user_google_auth(slid) # get user google calendar auth
         message = False
 
@@ -50,16 +50,6 @@ class Handler:
             """
         return auth, message
 
-    def message(sc, ch, txt, thread):
-        return sc.api_call(
-          "chat.postMessage",
-          channel=ch,
-          text=txt,
-          as_user=False,
-          username="tapdone bot"
-        )
-
-
     async def process_message(self, slack_event):
         team = slack_event.get('team_id', '')
         ev = slack_event['event']
@@ -70,14 +60,17 @@ class Handler:
         channel = ev.get('channel', '')
         bot_token = authed_teams.get(team, '')
 
-
-
         if not bot_token:
             bot_token = await get_token(team)
             if bot_token:
                 authed_teams[team] = bot_token
             else:
                 return
+
+        if ev.get('subtype', '') in ['bot_add', 'bot_message']:
+            return
+
+        logging.info(bot_token)
 
         sc = SlackClient(bot_token)
 
@@ -88,11 +81,17 @@ class Handler:
             'thread': ts
         }
 
-        auth, auth_message = await self.check_auth(slid)
+        auth, auth_message = await self.check_auth(slid, team)
 
         if auth_message:
             resp['txt'] = auth_message
-            self.message(**resp)
+            sc.api_call(
+              "chat.postMessage",
+              channel=resp['ch'],
+              text=resp['txt'],
+              as_user=False,
+              username="tapdone_bot"
+            )
             return
  
         # if not or(ev_type, team, slid, msg):
@@ -100,7 +99,6 @@ class Handler:
 
         ai_response = await get_ai_response(slid, msg)
 
-        msg_type = ai_response['msg_type']
         event_text = ai_response['event_text']
         event_start_time = ai_response['event_start_time']
         event_end_time = ai_response['event_end_time']
@@ -109,17 +107,29 @@ class Handler:
 
         if not speech: return
 
+        resp['txt'] = speech
+
         if msg_type == 'Create task':
-            user_response = await create_calendar_event(
-                msg_type,
+            event_link, user_response = await create_calendar_event(
+                auth,
                 event_text,
                 event_start_time,
                 event_end_time,
                 event_date,
                 speech,
             )
+         
+            resp['txt'] += "\nEvent link: {link} .\n".format(link=event_link) + user_response
 
-        self.message(**resp)
+        logging.info(resp)
+
+        sc.api_call(
+          "chat.postMessage",
+          channel=resp['ch'],
+          text=resp['txt'],
+          as_user=False,
+          username="tapdone_bot"
+        )
            
 
     async def handle_incoming_event(self, request):
@@ -128,8 +138,11 @@ class Handler:
 
         if not body or not isinstance(body, str):
             return web.Response(text='could not parse json')
+        try:
+            slack_event = json.loads(body)
+        except ValueError as e:
+            return web.Response(text='could not parse json')
 
-        slack_event = json.loads(body)
         logger.info(slack_event)
 
         # ============= Slack URL Verification ============ #
@@ -163,67 +176,16 @@ class Handler:
         return web.Response(text='ok')
 
     async def handle_new_team(self, request):
-        # read request body and parse json
-        team_data = await request.json()
-        team_id = team_data.get('team_id', '')
-        bot_token = team_data.get('bot_token', '')
+        try:
+            team_id = request.query['team_id']
+            bot_token = request.query['token']
+        except Exception:
+            return web.Response(text='params not found') 
         
         if team_id and bot_token:
             authed_teams[team_id] = bot_token
 
-    async def get_ai_response(self, slid, msg):
-        """
-        Gets api ai response text based on message
-        extracts events time, date and response to user.
-        """
-        data = await request.json()
-
-        slid = in_jsn['slid']
-        msg = in_jsn['msg']
-
-        ai = apiai.ApiAI(config['APIAI_CLIENT_ACCESS_TOKEN'])
-        request = ai.text_request()
-        request.session_id = slid
-        request.query = msg
-        airesponse = json.loads(request.getresponse().read().decode('utf8'))
-
-        res = airesponse.get('result',{})
-        msg_type = res.get('metadata', {}).get('intentName','')
-        params = res.get('parameters', {})
-        event_text = params.get('any', "Test task text")
-        event_time = params.get('time', [])
-
-        if isinstance(event_time, list):
-            if len(event_time) == 2:            
-                event_start_time = event_time[0]
-                event_end_time = event_time[1]
-
-            elif len(event_time) == 1:
-                event_start_time = event_time[0]
-                event_end_time = False
-                
-            else:
-                event_start_time = False
-                event_end_time = False
-        else:
-            event_start_time = event_time
-            event_end_time = False
-
-        event_date = params.get('date', '')
-        speech = res.get('fulfillment', {}).get('speech', '')
-
-        resp = {
-            'msg_type': msg_type, 
-            'event_text': event_text, 
-            'event_start_time': event_start_time, 
-            'event_end_time': event_end_time, 
-            'event_date': event_date, 
-            'speech':  speech,
-        }
-
-        return jsonify(resp), 200
-
-
+        return web.Response(text='ok') 
 
 
 async def init_tokens(app):
@@ -239,7 +201,7 @@ def init_app():
     handler = Handler(config['SLACK_VERIFICATION_TOKEN'])
     app.router.add_post('/slack_api/v1/incoming_event_handler', handler.handle_incoming_event)
     app.router.add_get('/slack_api/v1/new_slack_team', handler.handle_new_team)
-    app.router.add_get('/slack_api/v1/get_ai_response', handler.handle_new_team)
+
     return app
 
 
