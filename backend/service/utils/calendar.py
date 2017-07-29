@@ -258,5 +258,5 @@ def create_event(google_auth, event_text, event_date, event_start_time, event_en
     event = service.events().insert(calendarId=primary_calendar, body=event).execute()
     
 
-    return event, res
+    return res
     
