@@ -13,6 +13,7 @@ source venv/bin/activate
 pip install --upgrade pip
 pip install -r backend/requirements/shared.txt
 pip install -r backend/requirements/dev.txt
+export $(cat config/tapdone3.txt)
 ```
 ## Compile dependencies
 ```
