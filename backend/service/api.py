@@ -405,8 +405,8 @@ def get_token():
 #----------------------------------------------
 
 
-@api.route(v+'get_ai_response', methods=['GET', 'POST'])
-def get_ai_response_():   
+@api.route(v+'get_ai_response', methods=['POST'])
+def get_ai_response():   
     """
     Gets api ai response text based on message
     extracts events time, date and response to user.
@@ -472,7 +472,7 @@ def get_ai_response_():
 # ----------- google calendar -----------------
 #----------------------------------------------
 
-@api.route(v+'create_calendar_event')
+@api.route(v+'create_calendar_event', methods=['POST'])
 def create_calendar_event():
     data = request.json
     if not isinstance(data, dict):
@@ -483,16 +483,17 @@ def create_calendar_event():
     else:
         jsn = data
 
-    google_auth = jsn['google_auth']
+    auth = jsn['auth']
     event_text = jsn['event_text']
     event_date = jsn['event_date']
     event_start_time = jsn['event_start_time']
     event_end_time = jsn['event_end_time']
-    link, response = create_event(google_auth, event_text, event_date, event_start_time, event_end_time)
+
+    link, resp = create_event(auth, event_text, event_date, event_start_time, event_end_time)
 
     json_resp = {
         'event_link' : link,
-        'response' : response
+        'response' : resp
     }
 
     return jsonify(json_resp), 200

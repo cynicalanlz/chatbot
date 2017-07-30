@@ -122,16 +122,18 @@ async def get_token(team):
     else:
         return False
 
-async def create_calendar_event(msg_type, event_text, event_start_time, event_end_time, event_date, speech):
+async def create_calendar_event(auth, event_text, event_start_time, event_end_time, event_date, speech):
     url = '/api/v1/create_calendar_event'
     
     in_jsn = {}
-    in_jsn['msg_type'] = msg_type
+    in_jsn['auth'] = auth
     in_jsn['event_text'] = event_text
     in_jsn['event_start_time'] = event_start_time
     in_jsn['event_end_time'] = event_end_time
     in_jsn['event_date'] = event_date
     in_jsn['speech'] = speech
+
+    logging.info(in_jsn)
 
     api_resp = await post_url_json(url, in_jsn)
     user_response = api_resp['response']

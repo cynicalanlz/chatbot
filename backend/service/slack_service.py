@@ -36,7 +36,12 @@ class Handler:
     def __init__(self, verification):
         self.verification = verification
 
-    async def check_auth(self, slid, team):
+    async def check_google_auth(self, slid, team):
+        """
+        Processes message from slack,
+        get's api.ai reponse to message
+        creates calendar event if needed.
+        """
         auth = await get_user_google_auth(slid) # get user google calendar auth
         message = False
 
@@ -51,6 +56,11 @@ class Handler:
         return auth, message
 
     async def process_message(self, slack_event):
+        """
+        Processes message from slack,
+        get's api.ai reponse to message
+        creates calendar event if needed.
+        """
         team = slack_event.get('team_id', '')
         ev = slack_event['event']
         ev_type = ev['type']        
@@ -81,7 +91,7 @@ class Handler:
             'thread': ts
         }
 
-        auth, auth_message = await self.check_auth(slid, team)
+        auth, auth_message = await self.check_google_auth(slid, team)
 
         if auth_message:
             resp['txt'] = auth_message
@@ -98,7 +108,8 @@ class Handler:
         #     return 
 
         ai_response = await get_ai_response(slid, msg)
-
+        
+        msg_type = ai_response['msg_type']
         event_text = ai_response['event_text']
         event_start_time = ai_response['event_start_time']
         event_end_time = ai_response['event_end_time']
@@ -133,6 +144,9 @@ class Handler:
            
 
     async def handle_incoming_event(self, request):
+        """
+        Processes all events from slack
+        """
         # read request body and parse json
         body = await request.text()
 
@@ -176,6 +190,9 @@ class Handler:
         return web.Response(text='ok')
 
     async def handle_new_team(self, request):
+        """
+        Writes bot token to dict when new team is created
+        """
         try:
             team_id = request.query['team_id']
             bot_token = request.query['token']
@@ -189,6 +206,9 @@ class Handler:
 
 
 async def init_tokens(app):
+    """
+    Writes tokens to global dict
+    """
     tokens = await get_tokens()
     logging.info(tokens)
     for key, value in tokens:
@@ -196,6 +216,9 @@ async def init_tokens(app):
 
     
 def init_app():
+    """
+    Starts web applications, initializes handler
+    """
     app = web.Application()
     app.on_startup.append(init_tokens)
     handler = Handler(config['SLACK_VERIFICATION_TOKEN'])
