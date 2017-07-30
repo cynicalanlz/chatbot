@@ -92,7 +92,6 @@ def new_slack_team(token, team_id):
     h = httplib2.Http(".cache")    
     format_string = config['SLACK_PROTOCOL']+"://"+config['SLACK_HOST'] + ":" + config['SLACK_PORT'] +"/slack_api/v1/new_slack_team?token={}&team_id={}"        
     url = format_string.format(token,team_id)
-    logging.info(url)
     (resp_headers, content) = h.request(url, "GET")
     content = content.decode('utf-8')
 
@@ -151,8 +150,6 @@ def slack_post_install():
         team_id=slack_tid
     )
 
-    logging.info(auth_response)
-
     if not auth_response.get('ok',False):
         return jsonify({'msg' : 'not ok'})
     
@@ -165,9 +162,7 @@ def slack_post_install():
     db.session.commit()
 
     try:
-        head, cont = new_slack_team(team.bot_token, team.team_id)
-        logging.info(head)
-
+        head, cont = new_slack_team(team.bot_token, team.team_id)    
         return jsonify({
                'msg' : 'got response',
                'head' : head,
@@ -194,7 +189,7 @@ def registered_user_page(creds, usr):
             'registered.html',
         ))
 
-@api.route(v+'get_user_google_auth')
+@api.route(v+'get_user_google_auth', methods=['GET'])
 def get_user_google_auth():   
     """
     Returns google authentication codde, refreshes it 
@@ -267,7 +262,7 @@ def get_user_google_auth():
     }), 200
 
 
-@api.route(v+'register_cb')
+@api.route(v+'register_cb', methods=['GET'])
 def register_google():
     """
     If user authorization not found via user slack id  in db
@@ -348,7 +343,7 @@ def register_google():
 # ----------- slack bot tokens ---------------
 #----------------------------------------------
 
-@api.route(v+'get_tokens')
+@api.route(v+'get_tokens', methods=['GET'])
 def get_tokens():
     """
     Returns slack bot tokens for all teams from db.    
@@ -369,7 +364,7 @@ def get_tokens():
     return jsonify(response), 200
 
 
-@api.route(v+'get_token')
+@api.route(v+'get_token', methods=['GET'])
 def get_token():
     """
     Returns slack bot token for a team

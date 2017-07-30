@@ -27,8 +27,8 @@ async def get_url_json(url):
         async with session.get(url) as resp:
             if resp.status == 200:                
                 resp = await resp.json()
-                logging.info(url)
-                logging.info(resp)
+                # logging.info(url)
+                # logging.info(resp)
                 return resp
             else:
                 resp = {
@@ -43,8 +43,8 @@ async def post_url_json(url, jsn):
         async with session.post(url, json=jsn) as resp:            
             if resp.status == 200:
                 resp = await resp.json()
-                logging.info(url)
-                logging.info(resp)
+                # logging.info(url)
+                # logging.info(resp)
                 return resp
             else:
                 resp = {
@@ -132,9 +132,6 @@ async def create_calendar_event(auth, event_text, event_start_time, event_end_ti
     in_jsn['event_end_time'] = event_end_time
     in_jsn['event_date'] = event_date
     in_jsn['speech'] = speech
-
-    logging.info(in_jsn)
-
     api_resp = await post_url_json(url, in_jsn)
     user_response = api_resp['response']
     event_link = api_resp['event_link']

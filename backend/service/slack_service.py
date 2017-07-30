@@ -35,6 +35,7 @@ authed_teams = {}
 class Handler:  
     def __init__(self, verification):
         self.verification = verification
+        self.processed = []
 
     async def check_google_auth(self, slid, team):
         """
@@ -55,18 +56,27 @@ class Handler:
             """
         return auth, message
 
+    async def message(self, sc, ch, txt):
+        return sc.api_call(
+          "chat.postMessage",
+          channel=ch,
+          text=txt,
+          as_user=False,
+          username="tapdone_bot"
+        ) 
+
     async def process_message(self, slack_event):
         """
         Processes message from slack,
         get's api.ai reponse to message
         creates calendar event if needed.
         """
+
         team = slack_event.get('team_id', '')
         ev = slack_event['event']
         ev_type = ev['type']        
         slid = ev.get('user', '')
-        msg = ev.get('text', '')
-        ts = ev.get('ts', '')
+        msg = ev.get('text', '')        
         channel = ev.get('channel', '')
         bot_token = authed_teams.get(team, '')
 
@@ -80,29 +90,20 @@ class Handler:
         if ev.get('subtype', '') in ['bot_add', 'bot_message']:
             return
 
-        logging.info(bot_token)
-
         sc = SlackClient(bot_token)
 
         resp =  {
             'sc' : sc, 
-            'ch' : channel,
-            'txt' : '',
-            'thread': ts
+            'ch': channel,
+            'txt' : '',            
         }
 
         auth, auth_message = await self.check_google_auth(slid, team)
 
         if auth_message:
             resp['txt'] = auth_message
-            sc.api_call(
-              "chat.postMessage",
-              channel=resp['ch'],
-              text=resp['txt'],
-              as_user=False,
-              username="tapdone_bot"
-            )
-            return
+            await self.message(**resp)            
+            
  
         # if not or(ev_type, team, slid, msg):
         #     return 
@@ -132,16 +133,7 @@ class Handler:
          
             resp['txt'] += "\nEvent link: {link} .\n".format(link=event_link) + user_response
 
-        logging.info(resp)
-
-        sc.api_call(
-          "chat.postMessage",
-          channel=resp['ch'],
-          text=resp['txt'],
-          as_user=False,
-          username="tapdone_bot"
-        )
-           
+        await self.message(**resp) 
 
     async def handle_incoming_event(self, request):
         """
@@ -157,7 +149,15 @@ class Handler:
         except ValueError as e:
             return web.Response(text='could not parse json')
 
-        logger.info(slack_event)
+        # check if event not duplicated
+        eid = slack_event.get('event_id')
+        if not eid or eid in self.processed:
+            return
+        self.processed.append(eid)
+        if len(processed > 50000):
+            processed = processed[0:10000]
+
+        logging.info(slack_event)
 
         # ============= Slack URL Verification ============ #
         # In order to verify the url of our endpoint, Slack will send a challenge
