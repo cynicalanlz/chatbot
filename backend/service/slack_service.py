@@ -12,6 +12,7 @@ import httplib2
 
 from slackclient import SlackClient
 from aiohttp import web
+import aiohttp
 
 from utils.lib import get_or_create
 from utils.http_libs import get_user_google_auth, get_tokens, get_ai_response, get_token, create_calendar_event
@@ -21,6 +22,7 @@ import logging.config
 import argparse
 
 from config import logging_config
+from urllib.parse import parse_qsl
 
 parser = argparse.ArgumentParser(description="aiohttp server example")
 parser.add_argument('--path')
@@ -71,7 +73,6 @@ class Handler:
         get's api.ai reponse to message
         creates calendar event if needed.
         """
-
         team = slack_event.get('team_id', '')
         ev = slack_event['event']
         ev_type = ev['type']        
@@ -154,7 +155,7 @@ class Handler:
         if not eid or eid in self.processed:
             return
         self.processed.append(eid)
-        if len(processed > 50000):
+        if len(self.processed) > 50000:
             processed = processed[0:10000]
 
         logging.info(slack_event)
@@ -188,6 +189,73 @@ class Handler:
             await self.process_message(slack_event)
 
         return web.Response(text='ok')
+
+
+    async def handle_slack_command(self, request):
+        """
+        Processes all events from slack
+        """
+        # read request body and parse json
+        body = await request.text()
+        logging.info(body)
+        slack_event = dict(parse_qsl(body))
+        logging.info(slack_event)
+        logging.info('c1')
+        text = slack_event['text']
+        slid = slack_event['user_id']
+        team = slack_event['team_id']
+        msg = slack_event['text']   
+        url = slack_event['response_url']     
+        logging.info('c2')
+        bot_token = authed_teams.get(team, '')
+        logging.info('c3')
+        if not bot_token:
+            bot_token = await get_token(team)
+            if bot_token:
+                authed_teams[team] = bot_token
+            else:
+                return web.Response(text='Could not find team token')
+        logging.info('c4')
+
+        auth, auth_message = await self.check_google_auth(slid, team)
+        logging.info('c5')
+
+        if auth_message:
+            return web.Response(text=auth_message)
+
+        logging.info('c6')
+
+        ai_response = await get_ai_response(slid, msg)
+        logging.info('c7')
+        
+        msg_type = ai_response['msg_type']
+        event_text = ai_response['event_text']
+        event_start_time = ai_response['event_start_time']
+        event_end_time = ai_response['event_end_time']
+        event_date = ai_response['event_date']
+        speech = ai_response['speech']
+        logging.info('c8')
+
+        logging.info('c9')
+
+        if msg_type == 'Create task':
+            event_link, user_response = await create_calendar_event(
+                auth,
+                event_text,
+                event_start_time,
+                event_end_time,
+                event_date,
+                speech,
+            )
+         
+            speech += "\nEvent link: {link} .\n".format(link=event_link) + user_response
+    
+        logging.info('c10')
+        logging.info(speech)
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, json={'text': speech}) as resp:
+                logging.info(resp)
 
     async def handle_new_team(self, request):
         """
@@ -223,7 +291,9 @@ def init_app():
     app.on_startup.append(init_tokens)
     handler = Handler(config['SLACK_VERIFICATION_TOKEN'])
     app.router.add_post('/slack_api/v1/incoming_event_handler', handler.handle_incoming_event)
+    app.router.add_post('/slack_api/v1/handle_slack_command', handler.handle_slack_command)
     app.router.add_get('/slack_api/v1/new_slack_team', handler.handle_new_team)
+    app.router.add_post('/slack_api/v1/new_slack_team', handler.handle_new_team)
 
     return app
 
