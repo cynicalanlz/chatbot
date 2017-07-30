@@ -13,3 +13,4 @@ aiohttp
 dateparser
 aiohttp-jinja2
 uvloop
+gunicorn

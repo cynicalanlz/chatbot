@@ -20,7 +20,9 @@ DOCKER_PS_ID=$(docker run -d --name $SERVICE_NAME \
     -v "$(pwd)/configs/local":/app/configs \
     -e "GUNICORN_RELOAD=True" \
     -e "PYTHONUNBUFFERED=1" \
-    -p 80:80 $DEFAULT_IMAGE_ID)
+    -p 80:80 \
+    -p 8081:8081 \
+    $DEFAULT_IMAGE_ID)
 
 
 docker logs --follow $DOCKER_PS_ID

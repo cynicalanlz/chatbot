@@ -287,7 +287,6 @@ def init_app():
     app.router.add_post('/slack_api/v1/incoming_event_handler', handler.handle_incoming_event)
     app.router.add_post('/slack_api/v1/handle_slack_command', handler.handle_slack_command)
     app.router.add_get('/slack_api/v1/new_slack_team', handler.handle_new_team)
-    app.router.add_post('/slack_api/v1/new_slack_team', handler.handle_new_team)
 
     return app
 
