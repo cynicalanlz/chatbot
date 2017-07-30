@@ -42,6 +42,8 @@ app.logger.addHandler(fileHandler)
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = bool(config['SQLALCHEMY_TRACK_MODIFICATIONS'])
 app.config['SQLALCHEMY_DATABASE_URI'] = config['SQLALCHEMY_DATABASE_URI']
+app.config['DEBUG'] = True
 
 app.register_blueprint(api, url_prefix='/api')
 db.init_app(app)
+

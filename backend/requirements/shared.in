@@ -11,3 +11,5 @@ pytz
 retry
 aiohttp
 dateparser
+aiohttp-jinja2
+uvloop
