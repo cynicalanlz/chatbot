@@ -200,43 +200,36 @@ class Handler:
         logging.info(body)
         slack_event = dict(parse_qsl(body))
         logging.info(slack_event)
-        logging.info('c1')
+
         text = slack_event['text']
         slid = slack_event['user_id']
         team = slack_event['team_id']
         msg = slack_event['text']   
         url = slack_event['response_url']     
-        logging.info('c2')
+
         bot_token = authed_teams.get(team, '')
-        logging.info('c3')
+
         if not bot_token:
             bot_token = await get_token(team)
             if bot_token:
                 authed_teams[team] = bot_token
             else:
                 return web.Response(text='Could not find team token')
-        logging.info('c4')
 
         auth, auth_message = await self.check_google_auth(slid, team)
-        logging.info('c5')
 
-        if auth_message:
-            return web.Response(text=auth_message)
+        if auth_message:            
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, json={'text': speech}) as resp:
+                    logging.info(resp)
 
-        logging.info('c6')
-
-        ai_response = await get_ai_response(slid, msg)
-        logging.info('c7')
-        
+        ai_response = await get_ai_response(slid, msg)        
         msg_type = ai_response['msg_type']
         event_text = ai_response['event_text']
         event_start_time = ai_response['event_start_time']
         event_end_time = ai_response['event_end_time']
         event_date = ai_response['event_date']
         speech = ai_response['speech']
-        logging.info('c8')
-
-        logging.info('c9')
 
         if msg_type == 'Create task':
             event_link, user_response = await create_calendar_event(
@@ -249,13 +242,14 @@ class Handler:
             )
          
             speech += "\nEvent link: {link} .\n".format(link=event_link) + user_response
-    
-        logging.info('c10')
+
         logging.info(speech)
 
         async with aiohttp.ClientSession() as session:
             async with session.post(url, json={'text': speech}) as resp:
                 logging.info(resp)
+
+        return web.Response(text='')
 
     async def handle_new_team(self, request):
         """
