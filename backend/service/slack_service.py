@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #coding=utf-8
 import os, sys
-import json
+import yajl as json
 import datetime
 import shortuuid
 import asyncio
@@ -141,7 +141,12 @@ class Handler:
         Processes all events from slack
         """
         # read request body and parse json
-        body = await request.text()
+        try:
+            body = await request.text()
+        except Exception as e:
+            logging.info(e)
+
+        logging.info(body)
 
         if not body or not isinstance(body, str):
             return web.Response(text='could not parse json')
@@ -150,43 +155,45 @@ class Handler:
         except ValueError as e:
             return web.Response(text='could not parse json')
 
-        # check if event not duplicated
-        eid = slack_event.get('event_id')
-        if not eid or eid in self.processed:
-            return
-        self.processed.append(eid)
-        if len(self.processed) > 50000:
-            processed = processed[0:10000]
-
         logging.info(slack_event)
 
-        # ============= Slack URL Verification ============ #
-        # In order to verify the url of our endpoint, Slack will send a challenge
-        # token in a request and check for this token in the response our endpoint
-        # sends back.
-        #       For more info: https://api.slack.com/events/url_verification    
         if "challenge" in slack_event:
-            return web.json_response(slack_event["challenge"])
-            
-
-        # ============ Slack Token Verification =========== #
-        # We can verify the request is coming from Slack by checking that the
-        # verification token in the request matches our app's settings
-        if self.verification != slack_event.get("token"):
-            message = "Invalid Slack verification token"
-            # By adding "X-Slack-No-Retry" : 1 to our response headers, we turn off
-            # Slack's automatic retries during development.
-            return web.json_response(message, status=403)        
+            return web.json_response(slack_event["challenge"]) 
 
 
-        if not 'event' in slack_event:
-            return web.Response(text='no event found, skipping')
+        # # check if event not duplicated
+        # eid = slack_event.get('event_id')
+        # if not eid or eid in self.processed:
+        #     return
+        # self.processed.append(eid)
+        
+        # logging.info(slack_event)
 
-        ev = slack_event['event']
-        ev_type = ev['type']
+        # # ============= Slack URL Verification ============ #
+        # # In order to verify the url of our endpoint, Slack will send a challenge
+        # # token in a request and check for this token in the response our endpoint
+        # # sends back.
+        # #       For more info: https://api.slack.com/events/url_verification    
 
-        if ev_type == 'message':
-            await self.process_message(slack_event)
+
+        # # ============ Slack Token Verification =========== #
+        # # We can verify the request is coming from Slack by checking that the
+        # # verification token in the request matches our app's settings
+        # if self.verification != slack_event.get("token"):
+        #     message = "Invalid Slack verification token"
+        #     # By adding "X-Slack-No-Retry" : 1 to our response headers, we turn off
+        #     # Slack's automatic retries during development.
+        #     return web.json_response(message, status=403)        
+
+
+        # if not 'event' in slack_event:
+        #     return web.Response(text='no event found, skipping')
+
+        # ev = slack_event['event']
+        # ev_type = ev['type']
+
+        # if ev_type == 'message':
+        #     await self.process_message(slack_event)
 
         return web.Response(text='ok')
 
@@ -264,17 +271,29 @@ class Handler:
         if team_id and bot_token:
             authed_teams[team_id] = bot_token
 
-        return web.Response(text='ok') 
+        return web.Response(text='ok')
 
+    async def handle_incoming_event_log(self, request, *args):
+        text = await request.text()
+        logging.info(text)
+        return web.Response(text='')        
 
 async def init_tokens(app):
     """
     Writes tokens to global dict
     """
+    
     tokens = await get_tokens()
+    
+    if tokens == []:
+        await asyncio.sleep(5)
+        tokens = await get_tokens()
+
     logging.info(tokens)
-    for key, value in tokens:
-        authed_teams[key] = value
+    if tokens:
+        for key, value in tokens:
+            authed_teams[key] = value
+    logging.info(authed_teams)
 
     
 def init_app():
@@ -284,9 +303,11 @@ def init_app():
     app = web.Application()
     app.on_startup.append(init_tokens)
     handler = Handler(config['SLACK_VERIFICATION_TOKEN'])
-    app.router.add_post('/slack_api/v1/incoming_event_handler', handler.handle_incoming_event)
-    app.router.add_post('/slack_api/v1/handle_slack_command', handler.handle_slack_command)
-    app.router.add_get('/slack_api/v1/new_slack_team', handler.handle_new_team)
+    app.router.add_post('/slack_api/v1/incoming_event_logger', handler.handle_incoming_event_log)
+
+    # app.router.add_post('/slack_api/v1/incoming_event_handler', handler.handle_incoming_event)
+    # app.router.add_post('/slack_api/v1/handle_slack_command', handler.handle_slack_command)
+    # app.router.add_get('/slack_api/v1/new_slack_team', handler.handle_new_team)
 
     return app
 
