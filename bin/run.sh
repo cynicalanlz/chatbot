@@ -22,6 +22,7 @@ DOCKER_PS_ID=$(docker run -d --name $SERVICE_NAME \
     -e "PYTHONUNBUFFERED=1" \
     -p 80:80 \
     -p 8081:8081 \
+    -p 443:443 \
     $DEFAULT_IMAGE_ID)
 
 

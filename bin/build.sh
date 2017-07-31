@@ -39,4 +39,4 @@ END
 
 cat version.json
 
-docker build -f config/Dockerfile -t $IMAGE_ID .
+docker build  -f config/Dockerfile -t $IMAGE_ID .
