@@ -158,42 +158,42 @@ class Handler:
         logging.info(slack_event)
 
         if "challenge" in slack_event:
-            return web.json_response(slack_event["challenge"]) 
+            return web.Response(text=slack_event["challenge"]) 
 
 
-        # # check if event not duplicated
-        # eid = slack_event.get('event_id')
-        # if not eid or eid in self.processed:
-        #     return
-        # self.processed.append(eid)
+        # check if event not duplicated
+        eid = slack_event.get('event_id')
+        if not eid or eid in self.processed:
+            return
+        self.processed.append(eid)
         
-        # logging.info(slack_event)
+        logging.info(slack_event)
 
-        # # ============= Slack URL Verification ============ #
-        # # In order to verify the url of our endpoint, Slack will send a challenge
-        # # token in a request and check for this token in the response our endpoint
-        # # sends back.
-        # #       For more info: https://api.slack.com/events/url_verification    
-
-
-        # # ============ Slack Token Verification =========== #
-        # # We can verify the request is coming from Slack by checking that the
-        # # verification token in the request matches our app's settings
-        # if self.verification != slack_event.get("token"):
-        #     message = "Invalid Slack verification token"
-        #     # By adding "X-Slack-No-Retry" : 1 to our response headers, we turn off
-        #     # Slack's automatic retries during development.
-        #     return web.json_response(message, status=403)        
+        # ============= Slack URL Verification ============ #
+        # In order to verify the url of our endpoint, Slack will send a challenge
+        # token in a request and check for this token in the response our endpoint
+        # sends back.
+        #       For more info: https://api.slack.com/events/url_verification    
 
 
-        # if not 'event' in slack_event:
-        #     return web.Response(text='no event found, skipping')
+        # ============ Slack Token Verification =========== #
+        # We can verify the request is coming from Slack by checking that the
+        # verification token in the request matches our app's settings
+        if self.verification != slack_event.get("token"):
+            message = "Invalid Slack verification token"
+            # By adding "X-Slack-No-Retry" : 1 to our response headers, we turn off
+            # Slack's automatic retries during development.
+            return web.Response(text=message, status=403)        
 
-        # ev = slack_event['event']
-        # ev_type = ev['type']
 
-        # if ev_type == 'message':
-        #     await self.process_message(slack_event)
+        if not 'event' in slack_event:
+            return web.Response(text='no event found, skipping')
+
+        ev = slack_event['event']
+        ev_type = ev['type']
+
+        if ev_type == 'message':
+            await self.process_message(slack_event)
 
         return web.Response(text='ok')
 
@@ -274,8 +274,21 @@ class Handler:
         return web.Response(text='ok')
 
     async def handle_incoming_event_log(self, request, *args):
-        text = await request.text()
-        logging.info(text)
+        body = await request.text()
+        logging.info(body)
+
+
+        if not body or not isinstance(body, str):
+            return web.Response(text='could not parse json')
+        try:
+            slack_event = json.loads(body)
+        except ValueError as e:
+            return web.Response(text='could not parse json')
+
+
+        logging.info(slack_event.keys())
+
+
         return web.Response(text='')        
 
 async def init_tokens(app):
@@ -304,10 +317,9 @@ def init_app():
     app.on_startup.append(init_tokens)
     handler = Handler(config['SLACK_VERIFICATION_TOKEN'])
     app.router.add_post('/slack_api/v1/incoming_event_logger', handler.handle_incoming_event_log)
-
-    # app.router.add_post('/slack_api/v1/incoming_event_handler', handler.handle_incoming_event)
-    # app.router.add_post('/slack_api/v1/handle_slack_command', handler.handle_slack_command)
-    # app.router.add_get('/slack_api/v1/new_slack_team', handler.handle_new_team)
+    app.router.add_post('/slack_api/v1/incoming_event_handler', handler.handle_incoming_event)
+    app.router.add_post('/slack_api/v1/handle_slack_command', handler.handle_slack_command)
+    app.router.add_get('/slack_api/v1/new_slack_team', handler.handle_new_team)
 
     return app
 
