@@ -74,7 +74,7 @@ def get_primary_calendar(service):
 def has_overlap(A_start, A_end, B_start, B_end):
     latest_start = max(A_start, B_start)
     earliest_end = min(A_end, B_end)
-    return latest_start <= earliest_end
+    return latest_start < earliest_end
 
 
 def datetime_to_rfc(dt):
@@ -86,14 +86,27 @@ def datetime_to_rfc(dt):
         return "{}Z".format(dt.isoformat())
 
 
-def get_datetimes(event_date, event_start_time ,event_end_time, default_length, tz):
+
+def check_overlaps(event_start_new, event_end_new, events):
+    parse_settings =  {'RETURN_AS_TIMEZONE_AWARE': True}
+
+    if not events or len(events) == 0:     
+        return False, 0
+        
+    for start, end, summary in events:  
+        if start and end:
+            event_start = parse(start, settings=parse_settings)
+            event_end = parse(end, settings=parse_settings)
+        
+        if has_overlap(event_start, event_end, event_start_new, event_end_new):
+            return True, event_end
+            
+    return False, 0
+
+def get_datetimes(event_date, event_start_time ,event_end_time, default_length, tz, events):
     """
     Datetime conversion utility
     converts from date and start and end time
-
-    Конвертирует даты, времени начала и время конца 
-    в datetime начала и конца. Если время не задано ставит весь день.
-    Если не задано ничего, то ставит от +15 до +30 минут от текущего времени.
 
     @@params
     ----------
@@ -104,7 +117,7 @@ def get_datetimes(event_date, event_start_time ,event_end_time, default_length, 
     @@returns
     ----------
     event_start_time : datetime
-    event_end_time : datetimte
+    event_end_time : datetime
 
 
     """
@@ -131,26 +144,33 @@ def get_datetimes(event_date, event_start_time ,event_end_time, default_length, 
         event_end_time = tz.localize(event_end_time)
     
     elif event_date:
-        is_date = True
-        event_date = event_date
-        event_start_time = time_format.format(event_date, "00:00")
-        event_end_time = time_format.format(event_date, "23:59")
+        event_start_time = time_format.format(event_date, "09:00")
         event_start_time = parse(event_start_time)
-        event_end_time = parse(event_end_time)
-        event_start_time = tz.localize(event_start_time)
-        event_end_time = tz.localize(event_end_time)
-    
-    else:
-        is_date = True
-        event_date = datetime.datetime.now(tz).strftime('%Y-%m-%d')
-        event_start_time = time_format.format(event_date, "00:00")
-        event_end_time = time_format.format(event_date, "23:59")
-        event_start_time = parse(event_start_time)
-        event_end_time = parse(event_end_time)
+        event_end_time = event_start_time + datetime.timedelta(minutes=default_length)
         event_start_time = tz.localize(event_start_time)
         event_end_time = tz.localize(event_end_time)
 
-    return event_start_time, event_end_time, is_date, event_date
+        while True:
+            overlap, end = check_overlaps(event_start_time, event_end_time, events)
+            if not overlap:
+                break
+
+            event_start_time = end
+            event_end_time = event_start_time + datetime.timedelta(minutes=default_length)
+    
+    else:
+        event_start_time = datetime.datetime.now(tz)
+        event_end_time = event_start_time + datetime.timedelta(minutes=default_length)
+
+        while True:
+            overlap, end = check_overlaps(event_start_time, event_end_time, events)
+            if not overlap:
+                break
+
+            event_start_time = end
+            event_end_time = event_start_time + datetime.timedelta(minutes=default_length)
+
+    return event_start_time, event_end_time
 
 
 def create_event(google_auth, event_text, event_date, event_start_time, event_end_time):
@@ -193,7 +213,7 @@ def create_event(google_auth, event_text, event_date, event_start_time, event_en
     timezone = pytz.timezone(tz)
 
 
-    event_start_new, event_end_new, is_date, event_date = get_datetimes(event_date, event_start_time, event_end_time, default_length, timezone)
+    event_start_new, event_end_new = get_datetimes(event_date, event_start_time, event_end_time, default_length, timezone, events)
 
     parse_settings = {'RETURN_AS_TIMEZONE_AWARE': True}
 
@@ -224,20 +244,12 @@ def create_event(google_auth, event_text, event_date, event_start_time, event_en
             res +=  'Overlaps with: \n {texts}.'.format(texts=ovarlaps_joined)
 
 
-    if is_date:
-        event_config_start = {
-            'date' : event_date
-        }
-        event_config_end = {
-            'date' : event_date
-        }
-    else:
-        event_config_start = {
-            'dateTime':  datetime_to_rfc(event_start_new)
-        }
-        event_config_end = {
-            'dateTime': datetime_to_rfc(event_end_new)
-        }
+    event_config_start = {
+        'dateTime':  datetime_to_rfc(event_start_new)
+    }
+    event_config_end = {
+        'dateTime': datetime_to_rfc(event_end_new)
+    }
 
 
     event = {
