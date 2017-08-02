@@ -131,6 +131,7 @@ def get_datetimes(event_date, event_start_time ,event_end_time, default_length, 
     if event_date and event_start_time and event_end_time:        
         event_start_time = time_format.format(event_date, event_start_time)
         event_end_time = time_format.format(event_date, event_end_time)
+        loggging.inf(event_date)
         event_start_time = parse(event_start_time)
         event_end_time = parse(event_end_time)
         event_start_time = tz.localize(event_start_time)
@@ -142,6 +143,12 @@ def get_datetimes(event_date, event_start_time ,event_end_time, default_length, 
         event_end_time = event_start_time + datetime.timedelta(minutes=default_length)
         event_start_time = tz.localize(event_start_time)
         event_end_time = tz.localize(event_end_time)
+
+    # elif event_start_time and event_end_time:
+    #     event_date = datetime.datetime.now(tz).date()
+    #     event_start_time = time_format.format(event_date, event_start_time)
+    #     event_end_time = time_format.format(event_date, event_end_time)
+
     
     elif event_date:
         event_start_time = time_format.format(event_date, "09:00")
