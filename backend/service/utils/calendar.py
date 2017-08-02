@@ -100,7 +100,7 @@ def check_overlaps(event_start_new, event_end_new, events):
         
         if has_overlap(event_start, event_end, event_start_new, event_end_new):
             return True, event_end
-            
+
     return False, 0
 
 def get_datetimes(event_date, event_start_time ,event_end_time, default_length, tz, events):
@@ -124,7 +124,7 @@ def get_datetimes(event_date, event_start_time ,event_end_time, default_length, 
 
     time_format = "{}T{}"
 
-    is_date = False
+    date_changed = False
 
     logging.info(str(event_date), str(event_start_time), str(event_end_time))
 
@@ -150,6 +150,8 @@ def get_datetimes(event_date, event_start_time ,event_end_time, default_length, 
         event_start_time = tz.localize(event_start_time)
         event_end_time = tz.localize(event_end_time)
 
+        event_date_initial = event_start_time.date()
+
         while True:
             overlap, end = check_overlaps(event_start_time, event_end_time, events)
             if not overlap:
@@ -157,11 +159,18 @@ def get_datetimes(event_date, event_start_time ,event_end_time, default_length, 
 
             event_start_time = end
             event_end_time = event_start_time + datetime.timedelta(minutes=default_length)
+
+        event_date = event_start_time.date()
+
+        if event_date_initial != event_date:
+            date_changed = True
     
     else:
         event_start_time = datetime.datetime.now(tz)
         event_end_time = event_start_time + datetime.timedelta(minutes=default_length)
 
+        event_date_initial = event_start_time.date()
+
         while True:
             overlap, end = check_overlaps(event_start_time, event_end_time, events)
             if not overlap:
@@ -170,7 +179,12 @@ def get_datetimes(event_date, event_start_time ,event_end_time, default_length, 
             event_start_time = end
             event_end_time = event_start_time + datetime.timedelta(minutes=default_length)
 
-    return event_start_time, event_end_time
+        event_date = event_start_time.date()
+
+        if event_date_initial != event_date:
+            date_changed = True
+
+    return event_start_time, event_end_time, date_changed
 
 
 def create_event(google_auth, event_text, event_date, event_start_time, event_end_time):
@@ -213,13 +227,17 @@ def create_event(google_auth, event_text, event_date, event_start_time, event_en
     timezone = pytz.timezone(tz)
 
 
-    event_start_new, event_end_new = get_datetimes(event_date, event_start_time, event_end_time, default_length, timezone, events)
+    event_start_new, event_end_new, date_changed = get_datetimes(event_date, event_start_time, event_end_time, default_length, timezone, events)
 
     parse_settings = {'RETURN_AS_TIMEZONE_AWARE': True}
 
     overlap_texts_format_string = '- {}, which is between {} - {};\n'
 
     res = ''   
+
+
+    if date_changed:
+        res += 'But there were no available slots at that date, and the date has been changed.'
 
 
     if events and len(events) > 0:     
