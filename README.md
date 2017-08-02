@@ -271,6 +271,7 @@ docker rm -f /tapdone
 ```
 Running the instance:
 ```
+cd ~/Dropbox/Code/tapdone3/
 ./bin/run.sh
 ```
 Opening in browser:
