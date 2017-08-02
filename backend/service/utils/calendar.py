@@ -131,7 +131,6 @@ def get_datetimes(event_date, event_start_time ,event_end_time, default_length, 
     if event_date and event_start_time and event_end_time:        
         event_start_time = time_format.format(event_date, event_start_time)
         event_end_time = time_format.format(event_date, event_end_time)
-        loggging.inf(event_date)
         event_start_time = parse(event_start_time)
         event_end_time = parse(event_end_time)
         event_start_time = tz.localize(event_start_time)
@@ -144,21 +143,23 @@ def get_datetimes(event_date, event_start_time ,event_end_time, default_length, 
         event_start_time = tz.localize(event_start_time)
         event_end_time = tz.localize(event_end_time)
 
-    # elif event_start_time and event_end_time:
-    #     event_date = datetime.datetime.now(tz).date()
-    #     event_start_time = time_format.format(event_date, event_start_time)
-    #     event_end_time = time_format.format(event_date, event_end_time)
-
-    
-    elif event_date:
-        event_start_time = time_format.format(event_date, "09:00")
+    elif event_start_time and event_end_time:
+        event_date = datetime.datetime.now(tz).date().strftime('%Y-%m-%d')
+        event_start_time = time_format.format(event_date, event_start_time)
+        event_end_time = time_format.format(event_date, event_end_time)
         event_start_time = parse(event_start_time)
-        event_end_time = event_start_time + datetime.timedelta(minutes=default_length)
+        event_end_time = parse(event_end_time)
         event_start_time = tz.localize(event_start_time)
         event_end_time = tz.localize(event_end_time)
 
-        event_date_initial = event_start_time.date()
+    elif event_start_time:
+        event_date = datetime.datetime.now(tz).date().strftime('%Y-%m-%d')
+        event_start_time = time_format.format(event_date, event_start_time)
+        event_start_time = parse(event_start_time)        
+        event_start_time = tz.localize(event_start_time)
+        event_end_time = event_start_time + datetime.timedelta(minutes=default_length)
 
+        event_date_initial = event_start_time.date()
         while True:
             overlap, end = check_overlaps(event_start_time, event_end_time, events)
             if not overlap:
@@ -168,7 +169,26 @@ def get_datetimes(event_date, event_start_time ,event_end_time, default_length, 
             event_end_time = event_start_time + datetime.timedelta(minutes=default_length)
 
         event_date = event_start_time.date()
+        if event_date_initial != event_date:
+            date_changed = True
+    
+    elif event_date:
+        event_start_time = time_format.format(event_date, "09:00")
+        event_start_time = parse(event_start_time)
+        event_end_time = event_start_time + datetime.timedelta(minutes=default_length)
+        event_start_time = tz.localize(event_start_time)
+        event_end_time = tz.localize(event_end_time)
 
+        event_date_initial = event_start_time.date()
+        while True:
+            overlap, end = check_overlaps(event_start_time, event_end_time, events)
+            if not overlap:
+                break
+
+            event_start_time = end
+            event_end_time = event_start_time + datetime.timedelta(minutes=default_length)
+
+        event_date = event_start_time.date()
         if event_date_initial != event_date:
             date_changed = True
     
@@ -187,7 +207,6 @@ def get_datetimes(event_date, event_start_time ,event_end_time, default_length, 
             event_end_time = event_start_time + datetime.timedelta(minutes=default_length)
 
         event_date = event_start_time.date()
-
         if event_date_initial != event_date:
             date_changed = True
 
@@ -237,15 +256,10 @@ def create_event(google_auth, event_text, event_date, event_start_time, event_en
     event_start_new, event_end_new, date_changed = get_datetimes(event_date, event_start_time, event_end_time, default_length, timezone, events)
 
     parse_settings = {'RETURN_AS_TIMEZONE_AWARE': True}
-
     overlap_texts_format_string = '- {}, which is between {} - {};\n'
-
     res = ''   
-
-
     if date_changed:
         res += 'But there were no available slots at that date, and the date has been changed.'
-
 
     if events and len(events) > 0:     
         overlap_texts = []
