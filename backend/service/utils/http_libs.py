@@ -133,7 +133,10 @@ async def create_calendar_event(auth, event_text, event_start_time, event_end_ti
     in_jsn['event_date'] = event_date
     in_jsn['speech'] = speech
     api_resp = await post_url_json(url, in_jsn)
-    user_response = api_resp['response']
-    event_link = api_resp['event_link']
-
-    return event_link, user_response
+    
+    if api_resp and  'response' in api_resp and 'event_link' in api_resp:
+        user_response = api_resp['response']
+        event_link = api_resp['event_link']
+        return event_link, user_response
+    else:
+        return '', ''

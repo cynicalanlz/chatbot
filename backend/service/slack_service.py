@@ -106,7 +106,8 @@ class Handler:
 
         if auth_message:
             resp['txt'] = auth_message
-            await self.message(**resp)            
+            await self.message(**resp)
+            return
             
  
         # if not or(ev_type, team, slid, msg):
@@ -230,7 +231,7 @@ class Handler:
 
         if auth_message:            
             async with aiohttp.ClientSession() as session:
-                async with session.post(url, json={'text': speech}) as resp:
+                async with session.post(url, json={'text': auth_message}) as resp:
                     logging.info(resp)
 
         ai_response = await get_ai_response(slid, msg)        
