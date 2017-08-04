@@ -210,7 +210,7 @@ class Handler:
         body = await request.text()
         logging.info(body)
         slack_event = dict(parse_qsl(body))
-        logging.info(slack_event)
+        logging.info(slack_event)        
 
         text = slack_event['text']
         slid = slack_event['user_id']
@@ -233,8 +233,9 @@ class Handler:
             async with aiohttp.ClientSession() as session:
                 async with session.post(url, json={'text': auth_message}) as resp:
                     logging.info(resp)
+                    return web.Response(text='')
 
-        ai_response = await get_ai_response(slid, msg)        
+        ai_response = await get_ai_response(slid, msg)     
         msg_type = ai_response['msg_type']
         event_text = ai_response['event_text']
         event_start_time = ai_response['event_start_time']
