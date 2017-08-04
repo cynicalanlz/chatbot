@@ -233,7 +233,8 @@ class Handler:
             async with aiohttp.ClientSession() as session:
                 async with session.post(url, json={'text': auth_message}) as resp:
                     logging.info(resp)
-                    return web.Response(text='')
+                    
+            return web.Response(text='')
 
         ai_response = await get_ai_response(slid, msg)     
         msg_type = ai_response['msg_type']
