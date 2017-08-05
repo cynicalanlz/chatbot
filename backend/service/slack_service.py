@@ -175,7 +175,8 @@ class Handler:
         if not eid or eid in self.processed:
             return web.Response(text='')
 
-        self.processed.append(eid)
+        self.processed.append(eid)        
+        logging.info(self.processed)
         
         logging.info(slack_event)
 
@@ -232,6 +233,8 @@ class Handler:
             return web.Response(text='')
 
         self.processed_commands.append(eid)
+
+        logging.info(self.processed_commands)
 
         bot_token = authed_teams.get(team, '')    
 
