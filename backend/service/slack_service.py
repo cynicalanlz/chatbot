@@ -41,6 +41,7 @@ class Handler:
     def __init__(self, verification):
         self.verification = verification
         self.processed = []
+        self.processed_commands = []
 
     async def check_google_auth(self, slid, team):
         """
@@ -90,6 +91,9 @@ class Handler:
                 authed_teams[team] = bot_token
             else:
                 return
+
+        if not (team and ev and ev_type and slid and msg and channel and bot_token):
+           return
 
         if ev.get('subtype', '') in ['bot_add', 'bot_message']:
             return
@@ -167,8 +171,10 @@ class Handler:
 
         # check if event not duplicated
         eid = slack_event.get('event_id')
+        
         if not eid or eid in self.processed:
-            return
+            return web.Response(text='')
+
         self.processed.append(eid)
         
         logging.info(slack_event)
@@ -210,15 +216,24 @@ class Handler:
         body = await request.text()
         logging.info(body)
         slack_event = dict(parse_qsl(body))
-        logging.info(slack_event)        
+        logging.info(slack_event)      
 
-        text = slack_event['text']
-        slid = slack_event['user_id']
-        team = slack_event['team_id']
-        msg = slack_event['text']   
-        url = slack_event['response_url']     
+        eid = slack_event.get('trigger_id', '')
+        text = slack_event.get('text', '')
+        slid = slack_event.get('user_id', '')
+        team = slack_event.get('team_id', '')
+        msg = slack_event.get('text', '')
+        url = slack_event.get('response_url', '')
 
-        bot_token = authed_teams.get(team, '')
+        if not (eid and text and slid and team and msg and url):
+            return web.Response(text='') 
+
+        if not eid or eid in self.processed_commands:
+            return web.Response(text='')
+
+        self.processed_commands.append(eid)
+
+        bot_token = authed_teams.get(team, '')    
 
         if not bot_token:
             bot_token = await get_token(team)
