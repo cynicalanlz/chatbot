@@ -173,7 +173,7 @@ class Handler:
         eid = slack_event.get('event_id')
         
         if not eid or eid in self.processed:
-            return web.Response(text='')
+            return web.Response()
 
         self.processed.append(eid)        
         logging.info(self.processed)
@@ -227,10 +227,10 @@ class Handler:
         url = slack_event.get('response_url', '')
 
         if not (eid and text and slid and team and msg and url):
-            return web.Response(text='') 
+            return web.Response(status=200) 
 
         if not eid or eid in self.processed_commands:
-            return web.Response(text='')
+            return web.Response(status=200)
 
         self.processed_commands.append(eid)
 
@@ -252,7 +252,7 @@ class Handler:
                 async with session.post(url, json={'text': auth_message}) as resp:
                     logging.info(resp)
                     
-            return web.Response(text='')
+            return web.Response(status=200)
 
         ai_response = await get_ai_response(slid, msg)     
         msg_type = ai_response['msg_type']
@@ -280,7 +280,7 @@ class Handler:
             async with session.post(url, json={'text': speech}) as resp:
                 logging.info(resp)
 
-        return web.Response(text='')
+        return web.Response(status=200)
 
     async def handle_new_team(self, request):
         """
