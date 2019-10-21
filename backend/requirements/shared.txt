@@ -48,6 +48,6 @@ uritemplate==3.0.0        # via google-api-python-client
 urllib3==1.21.1           # via requests
 uvloop==0.8.0
 websocket-client==0.44.0  # via slackclient
-werkzeug==0.12.2          # via flask
+werkzeug==0.15.3          # via flask
 yajl==0.3.5
 yarl==0.11.0              # via aiohttp
